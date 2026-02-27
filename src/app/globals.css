@@ -1,6 +1,4 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
 body {
   font-family: 'Inter', system-ui, sans-serif;
@@ -8,7 +6,7 @@ body {
   color: #fff;
 }
 
-/* Netflix-style hero */
+/* Hero Netflix style */
 .hero-bg {
   background: linear-gradient(135deg, #4f46e5 0%, #1e1b4b 100%);
 }
