@@ -1,6 +1,6 @@
 // src/app/api/editais/route.ts
 import { NextResponse } from 'next/server';
-import { prisma } from '@/src/lib/prisma';
+import { prisma } from '@/lib/prisma';
 
 export async function GET() {
   try {

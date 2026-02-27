@@ -3,7 +3,7 @@
 import { SignedIn, SignedOut, SignInButton, useUser } from '@clerk/nextjs';
 import { Sparkles, BookOpen, TrendingUp, Target, Play } from 'lucide-react';
 import Link from 'next/link';
-import OnboardingWizard from '@/src/components/OnboardingWizard';
+import OnboardingWizard from '@/components/OnboardingWizard';
 import { useState } from 'react';
 
 export default function Home() {
