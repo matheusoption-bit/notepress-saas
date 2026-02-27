@@ -1,0 +1,94 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id            String   @id @default(cuid())
+  clerkId       String   @unique
+  email         String   @unique
+  name          String?
+  imageUrl      String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  profile       UserProfile?
+  notebooks     Notebook[]
+  solutions     Solution[]
+  subscriptions Subscription[]
+}
+
+model UserProfile {
+  id             String         @id @default(cuid())
+  userId         String         @unique
+  companyType    String?
+  preferredThemes String[]
+  trlInterest    Int?
+  writingProfile WritingProfile @default(ACADEMICO_FORMAL)
+  user           User           @relation(fields: [userId], references: [id])
+}
+
+model Solution {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  description String
+  trl         Int?
+  benefits    String[]
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id])
+}
+
+model Notebook {
+  id        String   @id @default(cuid())
+  title     String
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model Edital {
+  id        String   @id @default(cuid())
+  nome      String
+  orgao     String
+  prazo     String?
+  valor     String?
+  createdAt DateTime @default(now())
+}
+
+model Task {
+  id        String   @id @default(cuid())
+  title     String
+  status    String   @default("todo")
+  createdAt DateTime @default(now())
+}
+
+model Presentation {
+  id        String   @id @default(cuid())
+  title     String
+  content   Json
+  createdAt DateTime @default(now())
+}
+
+model Subscription {
+  id               String   @id @default(cuid())
+  userId           String
+  status           String
+  planId           String?
+  stripeId         String?  @unique
+  currentPeriodEnd DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user             User     @relation(fields: [userId], references: [id])
+}
+
+enum WritingProfile {
+  ACADEMICO_FORMAL
+  TECNICO_APLICADO
+  INSTITUCIONAL_PUBLICO
+}
