@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
-import TipTapEditor from '@/components/TipTapEditor';
-import SourcesSidebar from '@/components/SourcesSidebar';
-import VersionsSidebar from '@/components/VersionsSidebar';
-import RightPanel from '@/components/RightPanel';
+import { use, useState } from 'react';
+import TipTapEditor from '@/src/components/TipTapEditor';
+import SourcesSidebar from '@/src/components/SourcesSidebar';
+import VersionsSidebar from '@/src/components/VersionsSidebar';
+import RightPanel from '@/src/components/RightPanel';
 
-export default function NotebookPage({ params }: { params: { id: string } }) {
+export default function NotebookPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const [selectedTab, setSelectedTab] = useState<'editor' | 'sources'>('editor');
 
   return (

@@ -19,6 +19,7 @@ export default function TipTapEditor({ content, onUpdate }: TipTapEditorProps) {
       }),
     ],
     content: content || '<p></p>',
+    immediatelyRender: false,
     onUpdate: ({ editor }) => {
       onUpdate?.(editor.getJSON());
     },
