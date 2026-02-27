@@ -1,18 +1,32 @@
 'use client';
 
-import { Calendar, DollarSign, Target, ArrowLeft, Building2 } from 'lucide-react';
+import { use, useEffect, useState } from 'react';
 import Link from 'next/link';
+import { Calendar, DollarSign, Target, ArrowLeft, Sparkles, Building2 } from 'lucide-react';
 
-export default function EditalPage({ params }: { params: { id: string } }) {
-  // Dados mockados - depois vamos puxar do banco
-  const edital = {
-    nome: "Finep Mais Inovação Brasil – Rodada 2 – Transição Energética",
-    orgao: "FINEP / MCTI",
-    prazo: "31 de agosto de 2026",
-    valor: "R$ 500 milhões",
-    resumo: "Subvenção econômica para projetos de inovação em hidrogênio, armazenamento de energia e biocombustíveis.",
-    status: "aberto"
-  };
+export default function EditalPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
+  const [edital, setEdital] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch(`/api/editais/${id}`)
+      .then(res => {
+        if (!res.ok) throw new Error('Edital não encontrado');
+        return res.json();
+      })
+      .then(data => {
+        setEdital(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error(err);
+        setLoading(false);
+      });
+  }, [id]);
+
+  if (loading) return <div className="p-12 text-center text-xl">Carregando edital...</div>;
+  if (!edital) return <div className="p-12 text-center text-xl">Edital não encontrado</div>;
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white p-8">
@@ -22,16 +36,16 @@ export default function EditalPage({ params }: { params: { id: string } }) {
         </Link>
 
         <h1 className="text-4xl font-bold leading-tight mb-6">{edital.nome}</h1>
-        
+
         <div className="flex items-center gap-8 text-sm text-zinc-400 mb-12">
           <div className="flex items-center gap-2">
             <Building2 size={18} /> {edital.orgao}
           </div>
           <div className="flex items-center gap-2">
-            <Calendar size={18} /> Prazo: {edital.prazo}
+            <Calendar size={18} /> Prazo: {edital.dataFechamento ? new Date(edital.dataFechamento).toLocaleDateString('pt-BR') : '—'}
           </div>
           <div className="flex items-center gap-2">
-            <DollarSign size={18} /> Até {edital.valor}
+            <DollarSign size={18} /> Até R$ {edital.valorMax ? (edital.valorMax / 1_000_000).toFixed(0) : '—'} milhões
           </div>
         </div>
 
@@ -40,7 +54,7 @@ export default function EditalPage({ params }: { params: { id: string } }) {
           <div className="lg:col-span-2 space-y-10">
             <div>
               <h2 className="text-2xl font-semibold mb-4">Resumo do Edital</h2>
-              <p className="text-zinc-300 leading-relaxed">{edital.resumo}</p>
+              <p className="text-zinc-300 leading-relaxed">{edital.resumo || 'Resumo não disponível.'}</p>
             </div>
 
             <div>
@@ -69,7 +83,8 @@ export default function EditalPage({ params }: { params: { id: string } }) {
               <p className="text-zinc-400 mt-2">Excelente aderência</p>
             </div>
 
-            <button className="w-full bg-violet-600 hover:bg-violet-700 py-6 rounded-2xl text-xl font-bold transition">
+            <button className="w-full bg-violet-600 hover:bg-violet-700 py-6 rounded-2xl text-xl font-bold transition flex items-center justify-center gap-3">
+              <Sparkles size={24} />
               Gerar proposta completa em 1 clique
             </button>
           </div>
