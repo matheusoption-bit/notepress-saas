@@ -1,77 +1,136 @@
 /**
  * Notepress Design System Tokens
- * --------------------------------
- * Tema: Dark profundo e elegante
- * Público: Pesquisadores, fundadores de startup, diretores de ICT
+ * ──────────────────────────────
+ * Dual-theme: Light (NotebookLM) + Dark (Firebase Studio)
  *
- * Use estes tokens como referência canônica. As variáveis CSS correspondentes
- * ficam em globals.css e são consumidas pelos componentes via classes Tailwind.
+ * Os valores efetivos vêm das CSS custom properties em globals.css.
+ * Estes tokens servem como referência canônica para documentação,
+ * tipagem e uso programático.
  */
 
-export const colors = {
-  // ── Fundos ──────────────────────────────────────────
+/* ────────────────────────────────────────────────────────────── */
+/*  Light palette                                                 */
+/* ────────────────────────────────────────────────────────────── */
+
+export const lightColors = {
   background: {
-    base: "#0a0a0a",      // fundo raiz da aplicação
-    surface: "#111111",   // cards, painéis, modais
-    elevated: "#1a1a1a",  // hover de cards, dropdowns, tooltips
-    overlay: "#0d0d0d",   // overlay de modais
+    base: "#ffffff",
+    surface: "#f8f9fa",
+    elevated: "#ffffff",
+    overlay: "rgba(0,0,0,0.35)",
+    hover: "#f1f3f4",
   },
-
-  // ── Bordas ──────────────────────────────────────────
   border: {
-    default: "#1f1f1f",   // borda padrão sutil
-    muted: "#2a2a2a",     // borda levemente mais visível
-    focus: "#6366f1",     // foco de inputs/botões
+    default: "#e0e0e0",
+    muted: "#dadce0",
+    focus: "#1a73e8",
   },
-
-  // ── Primária – Indigo ────────────────────────────────
   primary: {
-    DEFAULT: "#6366f1",   // indigo-500
-    hover: "#818cf8",     // indigo-400 (hover)
-    active: "#4f46e5",    // indigo-600 (pressed)
-    subtle: "#1e1b4b",    // indigo-950 (background tonal)
+    DEFAULT: "#1a73e8",
+    hover: "#1765cc",
+    active: "#1558b0",
+    subtle: "#e8f0fe",
     foreground: "#ffffff",
   },
-
-  // ── Sucesso – Emerald ────────────────────────────────
   success: {
-    DEFAULT: "#10b981",   // emerald-500
-    hover: "#34d399",     // emerald-400
-    subtle: "#064e3b",    // emerald-950
+    DEFAULT: "#1e8e3e",
+    hover: "#188038",
+    subtle: "#e6f4ea",
     foreground: "#ffffff",
   },
-
-  // ── Acento – Violet (usar só como acento pontual) ───
   accent: {
-    DEFAULT: "#7c3aed",   // violet-600
-    hover: "#8b5cf6",     // violet-500
-    subtle: "#1d0d3b",    // violet-950
+    DEFAULT: "#7c3aed",
+    hover: "#6d28d9",
+    subtle: "#f3e8ff",
     foreground: "#ffffff",
   },
-
-  // ── Texto ────────────────────────────────────────────
   text: {
-    primary: "#f4f4f5",   // quase branco
-    secondary: "#a1a1aa", // cinza-400 (subtítulos, metadados)
-    muted: "#52525b",     // cinza-600 (placeholders, disabled)
-    inverse: "#09090b",   // texto sobre fundo claro
+    primary: "#1f1f1f",
+    secondary: "#5f6368",
+    muted: "#9aa0a6",
+    inverse: "#ffffff",
   },
-
-  // ── Destrutivo ───────────────────────────────────────
   destructive: {
-    DEFAULT: "#ef4444",   // red-500
-    hover: "#f87171",     // red-400
-    subtle: "#450a0a",    // red-950
+    DEFAULT: "#d93025",
+    hover: "#c5221f",
+    subtle: "#fce8e6",
     foreground: "#ffffff",
   },
-
-  // ── Warning ──────────────────────────────────────────
   warning: {
-    DEFAULT: "#f59e0b",   // amber-500
-    subtle: "#451a03",    // amber-950
-    foreground: "#ffffff",
+    DEFAULT: "#e37400",
+    subtle: "#fef7e0",
+  },
+  functional: {
+    indigo: "#4f46e5",
+    violet: "#7c3aed",
+    emerald: "#059669",
+    amber: "#d97706",
   },
 } as const;
+
+/* ────────────────────────────────────────────────────────────── */
+/*  Dark palette                                                  */
+/* ────────────────────────────────────────────────────────────── */
+
+export const darkColors = {
+  background: {
+    base: "#0a0a0a",
+    surface: "#121212",
+    elevated: "#1a1a1a",
+    overlay: "rgba(0,0,0,0.7)",
+    hover: "#242424",
+  },
+  border: {
+    default: "#2d2d2d",
+    muted: "#3c3c3c",
+    focus: "#4d90fe",
+  },
+  primary: {
+    DEFAULT: "#4d90fe",
+    hover: "#6ea8fe",
+    active: "#3b7ddb",
+    subtle: "#152238",
+    foreground: "#ffffff",
+  },
+  success: {
+    DEFAULT: "#34a853",
+    hover: "#5bb974",
+    subtle: "#0d2818",
+    foreground: "#ffffff",
+  },
+  accent: {
+    DEFAULT: "#a78bfa",
+    hover: "#c4b5fd",
+    subtle: "#1e1033",
+    foreground: "#ffffff",
+  },
+  text: {
+    primary: "#e8eaed",
+    secondary: "#9aa0a6",
+    muted: "#5f6368",
+    inverse: "#1f1f1f",
+  },
+  destructive: {
+    DEFAULT: "#f28b82",
+    hover: "#ee675c",
+    subtle: "#3c1414",
+    foreground: "#ffffff",
+  },
+  warning: {
+    DEFAULT: "#fdd663",
+    subtle: "#3c2e00",
+  },
+  functional: {
+    indigo: "#818cf8",
+    violet: "#a78bfa",
+    emerald: "#34d399",
+    amber: "#fbbf24",
+  },
+} as const;
+
+/* ────────────────────────────────────────────────────────────── */
+/*  Shared tokens                                                 */
+/* ────────────────────────────────────────────────────────────── */
 
 export const spacing = {
   px: "1px",
@@ -98,25 +157,11 @@ export const borderRadius = {
   sm: "4px",
   DEFAULT: "6px",
   md: "8px",
-  lg: "10px",
-  xl: "12px",
-  "2xl": "16px",
+  lg: "12px",
+  xl: "16px",
+  "2xl": "20px",
   "3xl": "24px",
   full: "9999px",
-} as const;
-
-export const shadows = {
-  none: "none",
-  sm: "0 1px 2px 0 rgb(0 0 0 / 0.5)",
-  DEFAULT: "0 2px 8px 0 rgb(0 0 0 / 0.4)",
-  md: "0 4px 12px 0 rgb(0 0 0 / 0.5)",
-  lg: "0 8px 24px 0 rgb(0 0 0 / 0.6)",
-  xl: "0 16px 40px 0 rgb(0 0 0 / 0.7)",
-  // Glow effects sutis
-  "glow-primary": "0 0 20px 0 rgb(99 102 241 / 0.25)",
-  "glow-success": "0 0 20px 0 rgb(16 185 129 / 0.25)",
-  // Inner
-  inner: "inset 0 1px 4px 0 rgb(0 0 0 / 0.6)",
 } as const;
 
 export const typography = {
@@ -125,38 +170,38 @@ export const typography = {
     mono: ["JetBrains Mono", "Fira Code", "Consolas", "monospace"],
   },
   fontSize: {
-    xs: ["11px", { lineHeight: "16px" }],
-    sm: ["13px", { lineHeight: "20px" }],
+    xs:   ["11px", { lineHeight: "16px" }],
+    sm:   ["13px", { lineHeight: "20px" }],
     base: ["14px", { lineHeight: "22px" }],
-    md: ["15px", { lineHeight: "24px" }],
-    lg: ["16px", { lineHeight: "26px" }],
-    xl: ["18px", { lineHeight: "28px" }],
+    md:   ["15px", { lineHeight: "24px" }],
+    lg:   ["16px", { lineHeight: "26px" }],
+    xl:   ["18px", { lineHeight: "28px" }],
     "2xl": ["22px", { lineHeight: "32px" }],
     "3xl": ["28px", { lineHeight: "36px" }],
     "4xl": ["36px", { lineHeight: "44px" }],
     "5xl": ["48px", { lineHeight: "56px" }],
   },
   fontWeight: {
-    regular: "400",
-    medium: "500",
+    regular:  "400",
+    medium:   "500",
     semibold: "600",
-    bold: "700",
+    bold:     "700",
   },
   letterSpacing: {
-    tight: "-0.025em",
+    tight:  "-0.025em",
     normal: "0em",
-    wide: "0.025em",
-    wider: "0.05em",
+    wide:   "0.025em",
+    wider:  "0.05em",
     widest: "0.1em",
   },
 } as const;
 
-/** Token completo exportado como objeto unificado */
+/** Objecto unificado */
 export const ds = {
-  colors,
+  light: lightColors,
+  dark: darkColors,
   spacing,
   borderRadius,
-  shadows,
   typography,
 } as const;
 

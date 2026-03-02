@@ -1,82 +1,190 @@
 @import "tailwindcss";
 
+/* ── Tailwind v4: dark mode via classe .dark ──────── */
+@custom-variant dark (&:is(.dark *));
+
 /* ============================================================
-   Notepress Design System — CSS Custom Properties
-   Tema: Dark profundo e elegante
+   Notepress Design System
+   Light: Google NotebookLM  |  Dark: Firebase Studio
    ============================================================ */
 
+/* ── LIGHT MODE (default) ─────────────────────────── */
 :root {
-  /* ── Fundos ──────────────────────────────────────── */
-  --color-background-base:     #0a0a0a;
-  --color-background-surface:  #111111;
-  --color-background-elevated: #1a1a1a;
-  --color-background-overlay:  #0d0d0d;
+  color-scheme: light;
 
-  /* ── Bordas ──────────────────────────────────────── */
-  --color-border-default: #1f1f1f;
-  --color-border-muted:   #2a2a2a;
-  --color-border-focus:   #6366f1;
+  /* Fundos */
+  --color-background-base:     #ffffff;
+  --color-background-surface:  #f8f9fa;
+  --color-background-elevated: #ffffff;
+  --color-background-overlay:  rgba(0, 0, 0, 0.35);
+  --color-background-hover:    #f1f3f4;
 
-  /* ── Primária – Indigo ───────────────────────────── */
-  --color-primary:            #6366f1;
-  --color-primary-hover:      #818cf8;
-  --color-primary-active:     #4f46e5;
-  --color-primary-subtle:     #1e1b4b;
+  /* Bordas */
+  --color-border-default: #e0e0e0;
+  --color-border-muted:   #dadce0;
+  --color-border-focus:   #1a73e8;
+
+  /* Primária — Azul (só uso pontual: botão primário, badge ativo, link) */
+  --color-primary:            #1a73e8;
+  --color-primary-hover:      #1765cc;
+  --color-primary-active:     #1558b0;
+  --color-primary-subtle:     #e8f0fe;
   --color-primary-foreground: #ffffff;
 
-  /* ── Sucesso – Emerald ───────────────────────────── */
-  --color-success:            #10b981;
-  --color-success-hover:      #34d399;
-  --color-success-subtle:     #064e3b;
+  /* Sucesso */
+  --color-success:            #1e8e3e;
+  --color-success-hover:      #188038;
+  --color-success-subtle:     #e6f4ea;
   --color-success-foreground: #ffffff;
 
-  /* ── Acento – Violet ─────────────────────────────── */
+  /* Acento — Violeta (uso muito pontual) */
   --color-accent:            #7c3aed;
-  --color-accent-hover:      #8b5cf6;
-  --color-accent-subtle:     #1d0d3b;
+  --color-accent-hover:      #6d28d9;
+  --color-accent-subtle:     #f3e8ff;
   --color-accent-foreground: #ffffff;
 
-  /* ── Texto ───────────────────────────────────────── */
-  --color-text-primary:   #f4f4f5;
-  --color-text-secondary: #a1a1aa;
-  --color-text-muted:     #52525b;
-  --color-text-inverse:   #09090b;
+  /* Texto */
+  --color-text-primary:   #1f1f1f;
+  --color-text-secondary: #5f6368;
+  --color-text-muted:     #9aa0a6;
+  --color-text-inverse:   #ffffff;
 
-  /* ── Destrutivo ──────────────────────────────────── */
-  --color-destructive:            #ef4444;
-  --color-destructive-hover:      #f87171;
-  --color-destructive-subtle:     #450a0a;
+  /* Destrutivo */
+  --color-destructive:            #d93025;
+  --color-destructive-hover:      #c5221f;
+  --color-destructive-subtle:     #fce8e6;
   --color-destructive-foreground: #ffffff;
 
-  /* ── Warning ─────────────────────────────────────── */
-  --color-warning:        #f59e0b;
-  --color-warning-subtle: #451a03;
+  /* Warning */
+  --color-warning:        #e37400;
+  --color-warning-subtle: #fef7e0;
 
-  /* ── Border Radius ───────────────────────────────── */
+  /* Acentos funcionais (badges, indicadores, progress bars) */
+  --accent-indigo:     #4f46e5;
+  --accent-indigo-bg:  rgba(79, 70, 229, 0.08);
+  --accent-indigo-glow: rgba(79, 70, 229, 0.12);
+  --accent-violet:     #7c3aed;
+  --accent-violet-bg:  rgba(124, 58, 237, 0.08);
+  --accent-violet-glow: rgba(124, 58, 237, 0.12);
+  --accent-emerald:    #059669;
+  --accent-emerald-bg: rgba(5, 150, 105, 0.08);
+  --accent-emerald-glow: rgba(5, 150, 105, 0.12);
+  --accent-amber:      #d97706;
+  --accent-amber-bg:   rgba(217, 119, 6, 0.08);
+  --accent-amber-glow: rgba(217, 119, 6, 0.12);
+
+  /* Radius */
   --radius-sm:   4px;
   --radius-md:   8px;
-  --radius-lg:   10px;
-  --radius-xl:   12px;
-  --radius-2xl:  16px;
+  --radius-lg:   12px;
+  --radius-xl:   16px;
+  --radius-2xl:  20px;
   --radius-full: 9999px;
 
-  /* ── Sombras ─────────────────────────────────────── */
-  --shadow-sm:           0 1px 2px 0 rgb(0 0 0 / 0.5);
-  --shadow-md:           0 4px 12px 0 rgb(0 0 0 / 0.5);
-  --shadow-lg:           0 8px 24px 0 rgb(0 0 0 / 0.6);
-  --shadow-xl:           0 16px 40px 0 rgb(0 0 0 / 0.7);
-  --shadow-glow-primary: 0 0 20px 0 rgb(99 102 241 / 0.25);
-  --shadow-glow-success: 0 0 20px 0 rgb(16 185 129 / 0.25);
-  --shadow-inner:        inset 0 1px 4px 0 rgb(0 0 0 / 0.6);
+  /* Sombras */
+  --shadow-sm:  0 1px 2px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04);
+  --shadow-md:  0 2px 4px rgba(0, 0, 0, 0.06), 0 4px 12px rgba(0, 0, 0, 0.06);
+  --shadow-lg:  0 4px 8px rgba(0, 0, 0, 0.06), 0 8px 24px rgba(0, 0, 0, 0.08);
+  --shadow-xl:  0 8px 16px rgba(0, 0, 0, 0.08), 0 16px 40px rgba(0, 0, 0, 0.1);
+  --shadow-glow-primary: 0 0 16px rgba(26, 115, 232, 0.15);
+  --shadow-glow-success: 0 0 16px rgba(30, 142, 62, 0.15);
+  --shadow-inner: inset 0 1px 2px rgba(0, 0, 0, 0.06);
 
-  /* ── Tipografia ──────────────────────────────────── */
+  /* Cards */
+  --card-bg:       #ffffff;
+  --card-bg-hover: #f8f9fa;
+  --card-border:   #e8eaed;
+  --card-shadow:   0 1px 3px rgba(0, 0, 0, 0.08);
+
+  /* Tipografia */
   --font-sans: "Inter", system-ui, -apple-system, sans-serif;
   --font-mono: "JetBrains Mono", "Fira Code", Consolas, monospace;
 
-  /* ── Transições ──────────────────────────────────── */
+  /* Transições */
   --transition-fast:   150ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-normal: 200ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-slow:   300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ── DARK MODE ────────────────────────────────────── */
+.dark {
+  color-scheme: dark;
+
+  /* Fundos — preto profundo, zero azulado */
+  --color-background-base:     #0a0a0a;
+  --color-background-surface:  #121212;
+  --color-background-elevated: #1a1a1a;
+  --color-background-overlay:  rgba(0, 0, 0, 0.7);
+  --color-background-hover:    #242424;
+
+  /* Bordas — cinza neutro puro */
+  --color-border-default: #2d2d2d;
+  --color-border-muted:   #3c3c3c;
+  --color-border-focus:   #4d90fe;
+
+  /* Primária */
+  --color-primary:            #4d90fe;
+  --color-primary-hover:      #6ea8fe;
+  --color-primary-active:     #3b7ddb;
+  --color-primary-subtle:     #152238;
+  --color-primary-foreground: #ffffff;
+
+  /* Sucesso */
+  --color-success:            #34a853;
+  --color-success-hover:      #5bb974;
+  --color-success-subtle:     #0d2818;
+  --color-success-foreground: #ffffff;
+
+  /* Acento */
+  --color-accent:            #a78bfa;
+  --color-accent-hover:      #c4b5fd;
+  --color-accent-subtle:     #1e1033;
+  --color-accent-foreground: #ffffff;
+
+  /* Texto */
+  --color-text-primary:   #e8eaed;
+  --color-text-secondary: #9aa0a6;
+  --color-text-muted:     #5f6368;
+  --color-text-inverse:   #1f1f1f;
+
+  /* Destrutivo */
+  --color-destructive:            #f28b82;
+  --color-destructive-hover:      #ee675c;
+  --color-destructive-subtle:     #3c1414;
+  --color-destructive-foreground: #ffffff;
+
+  /* Warning */
+  --color-warning:        #fdd663;
+  --color-warning-subtle: #3c2e00;
+
+  /* Acentos funcionais — mais claros para fundo escuro */
+  --accent-indigo:     #818cf8;
+  --accent-indigo-bg:  rgba(129, 140, 248, 0.1);
+  --accent-indigo-glow: rgba(129, 140, 248, 0.15);
+  --accent-violet:     #a78bfa;
+  --accent-violet-bg:  rgba(167, 139, 250, 0.1);
+  --accent-violet-glow: rgba(167, 139, 250, 0.15);
+  --accent-emerald:    #34d399;
+  --accent-emerald-bg: rgba(52, 211, 153, 0.1);
+  --accent-emerald-glow: rgba(52, 211, 153, 0.15);
+  --accent-amber:      #fbbf24;
+  --accent-amber-bg:   rgba(251, 191, 36, 0.1);
+  --accent-amber-glow: rgba(251, 191, 36, 0.15);
+
+  /* Sombras — mais densas */
+  --shadow-sm:  0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow-md:  0 2px 6px rgba(0, 0, 0, 0.5);
+  --shadow-lg:  0 4px 12px rgba(0, 0, 0, 0.6);
+  --shadow-xl:  0 8px 24px rgba(0, 0, 0, 0.7);
+  --shadow-glow-primary: 0 0 20px rgba(77, 144, 254, 0.2);
+  --shadow-glow-success: 0 0 20px rgba(52, 168, 83, 0.2);
+  --shadow-inner: inset 0 1px 4px rgba(0, 0, 0, 0.6);
+
+  /* Cards */
+  --card-bg:       #121212;
+  --card-bg-hover: #1a1a1a;
+  --card-border:   #2d2d2d;
+  --card-shadow:   0 2px 6px rgba(0, 0, 0, 0.4);
 }
 
 /* ============================================================
@@ -98,10 +206,11 @@ html {
 body {
   font-family: var(--font-sans);
   font-size: 14px;
-  line-height: 22px;
+  line-height: 1.6;
   background-color: var(--color-background-base);
   color: var(--color-text-primary);
   min-height: 100dvh;
+  transition: background-color var(--transition-normal), color var(--transition-normal);
 }
 
 /* ============================================================
@@ -110,7 +219,7 @@ body {
 
 ::selection {
   background-color: var(--color-primary-subtle);
-  color: var(--color-primary-hover);
+  color: var(--color-primary);
 }
 
 /* ============================================================
@@ -124,7 +233,7 @@ body {
 }
 
 /* ============================================================
-   Scrollbar personalizada
+   Scrollbar
    ============================================================ */
 
 ::-webkit-scrollbar {
@@ -133,7 +242,7 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--color-background-base);
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
@@ -145,35 +254,10 @@ body {
   background: var(--color-text-muted);
 }
 
-/* Scrollbar utilitário (ocultar) */
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
-}
-
-/* ============================================================
-   Gradientes utilitários
-   ============================================================ */
-
-.gradient-hero {
-  background: linear-gradient(135deg, var(--color-primary-subtle) 0%, var(--color-background-base) 100%);
-}
-
-.gradient-primary {
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent) 100%);
-}
-
-.gradient-surface {
-  background: linear-gradient(180deg, var(--color-background-surface) 0%, var(--color-background-base) 100%);
-}
-
-/* Borda com gradiente sutil */
-.border-gradient {
-  border: 1px solid transparent;
-  background:
-    linear-gradient(var(--color-background-surface), var(--color-background-surface)) padding-box,
-    linear-gradient(135deg, var(--color-border-muted), transparent 60%) border-box;
 }
 
 /* ============================================================
@@ -213,7 +297,7 @@ body {
 }
 
 /* ============================================================
-   Animações base
+   Animações
    ============================================================ */
 
 @keyframes fade-in {
@@ -232,11 +316,11 @@ body {
 }
 
 @keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 8px 0 rgb(99 102 241 / 0.2); }
-  50%       { box-shadow: 0 0 20px 4px rgb(99 102 241 / 0.4); }
+  0%, 100% { box-shadow: 0 0 8px 0 rgba(77, 144, 254, 0.2); }
+  50%       { box-shadow: 0 0 20px 4px rgba(77, 144, 254, 0.4); }
 }
 
-.animate-fade-in  { animation: fade-in  var(--transition-normal) forwards; }
-.animate-fade-up  { animation: fade-up  var(--transition-slow)   forwards; }
-.animate-scale-in { animation: scale-in var(--transition-fast)   forwards; }
+.animate-fade-in    { animation: fade-in  var(--transition-normal) forwards; }
+.animate-fade-up    { animation: fade-up  var(--transition-slow)   forwards; }
+.animate-scale-in   { animation: scale-in var(--transition-fast)   forwards; }
 .animate-pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
