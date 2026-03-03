@@ -1,4 +1,5 @@
 // src/app/api/notebooks/[id]/route.ts
+import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
@@ -7,9 +8,15 @@ type RouteContext = { params: Promise<{ id: string }> };
 /**
  * GET /api/notebooks/:id
  * Retorna o Notebook com o Document associado (conteúdo Lexical em JSON).
+ * Requer autenticação via Clerk e que o notebook pertença ao usuário.
  */
 export async function GET(_req: Request, { params }: RouteContext) {
   try {
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: 'Não autenticado' }, { status: 401 });
+    }
+
     const { id } = await params;
 
     const notebook = await prisma.notebook.findUnique({
@@ -30,6 +37,11 @@ export async function GET(_req: Request, { params }: RouteContext) {
       );
     }
 
+    const user = await prisma.user.findUnique({ where: { clerkId: userId } });
+    if (!user || notebook.userId !== user.id) {
+      return NextResponse.json({ error: 'Acesso negado' }, { status: 403 });
+    }
+
     return NextResponse.json(notebook);
   } catch (error) {
     console.error('[API /notebooks/:id GET]', error);
@@ -40,33 +52,32 @@ export async function GET(_req: Request, { params }: RouteContext) {
 /**
  * PATCH /api/notebooks/:id
  * Salva/atualiza o conteúdo Lexical (campo `content: Json` do Document).
+ * Requer autenticação via Clerk e que o notebook pertença ao usuário.
  *
- * Body esperado: { content: object | string }
- *   - `content` é o estado Lexical serializado (resultado de editorState.toJSON()).
- *   - Se recebido como string, será parseado para objeto antes de persistir.
- *
- * A operação usa upsert: cria o Document se ainda não existir para o Notebook.
+ * Body esperado: { content: string } — JSON serializado do estado Lexical
+ *   (resultado de JSON.stringify(editorState.toJSON())).
  */
 export async function PATCH(req: Request, { params }: RouteContext) {
   try {
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: 'Não autenticado' }, { status: 401 });
+    }
+
     const { id } = await params;
     const body = await req.json();
 
-    // Aceita tanto objeto quanto string JSON (compatível com onChange do Lexical)
     const rawContent: unknown = body.content;
-    const content =
-      typeof rawContent === 'string'
-        ? (JSON.parse(rawContent) as object)
-        : (rawContent as object);
-
-    if (!content || typeof content !== 'object') {
+    if (typeof rawContent !== 'string') {
       return NextResponse.json(
-        { error: 'Campo `content` inválido ou ausente' },
+        { error: 'Campo `content` deve ser uma string JSON' },
         { status: 400 },
       );
     }
 
-    // Verifica se o notebook existe
+    const content = JSON.parse(rawContent) as object;
+
+    // Verifica se o notebook existe e pertence ao usuário autenticado
     const notebook = await prisma.notebook.findUnique({ where: { id } });
     if (!notebook) {
       return NextResponse.json(
@@ -75,21 +86,20 @@ export async function PATCH(req: Request, { params }: RouteContext) {
       );
     }
 
-    // Upsert do Document (1:1 com Notebook)
-    const document = await prisma.document.upsert({
+    const user = await prisma.user.findUnique({ where: { clerkId: userId } });
+    if (!user || notebook.userId !== user.id) {
+      return NextResponse.json({ error: 'Acesso negado' }, { status: 403 });
+    }
+
+    const document = await prisma.document.update({
       where: { notebookId: id },
-      create: {
-        notebookId: id,
-        content,
-        version: 1,
-      },
-      update: {
+      data: {
         content,
         version: { increment: 1 },
       },
     });
 
-    return NextResponse.json({ ok: true, version: document.version });
+    return NextResponse.json({ success: true, version: document.version });
   } catch (error) {
     console.error('[API /notebooks/:id PATCH]', error);
     return NextResponse.json({ error: 'Erro ao salvar' }, { status: 500 });

@@ -56,8 +56,7 @@ export default function NotebookPage({
 
   // ── Estado ─────────────────────────────────────────────────
   const [notebookTitle, setNotebookTitle] = useState<string>('Carregando…');
-  const [initialState, setInitialState]   = useState<string | null>(null);
-  const [saveStatus, setSaveStatus]       = useState<SaveStatus>('idle');
+  const [initialState, setInitialState]   = useState<string | null>(null);  const [editalId, setEditalId]           = useState<string | null>(null);  const [saveStatus, setSaveStatus]       = useState<SaveStatus>('idle');
   const [zenMode, setZenMode]             = useState(false);
   const [fullZen, setFullZen]             = useState(false);
 
@@ -73,9 +72,11 @@ export default function NotebookPage({
         if (!res.ok) return;
         const data = await res.json() as {
           title: string;
+          editalId?: string | null;
           document?: { content: unknown } | null;
         };
         setNotebookTitle(data.title ?? 'Sem título');
+        setEditalId(data.editalId ?? null);
         if (data.document?.content) {
           setInitialState(JSON.stringify(data.document.content));
         } else {
@@ -99,7 +100,7 @@ export default function NotebookPage({
           const res = await fetch(`/api/notebooks/${id}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ content: JSON.parse(json) }),
+            body: JSON.stringify({ content: json }),
           });
           setSaveStatus(res.ok ? 'saved' : 'error');
           setTimeout(() => setSaveStatus('idle'), 3000);
@@ -107,9 +108,28 @@ export default function NotebookPage({
           setSaveStatus('error');
           setTimeout(() => setSaveStatus('idle'), 4000);
         }
-      }, 1500);
+      }, 3000);
     },
     [id],
+  );
+
+  // ── Ghost Text: chama POST /api/ai/ghost-text ─────────────
+  const handleRequestSuggestion = useCallback(
+    async (context: string): Promise<string | null> => {
+      try {
+        const res = await fetch('/api/ai/ghost-text', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ context, ...(editalId ? { editalId } : {}) }),
+        });
+        if (!res.ok) return null;
+        const data = await res.json() as { suggestion?: string };
+        return data.suggestion ?? null;
+      } catch {
+        return null;
+      }
+    },
+    [editalId],
   );
 
   // ── Modo Zen: ativa ao digitar, desativa após 2.5s de pausa ─
@@ -190,6 +210,7 @@ export default function NotebookPage({
             namespace={`notebook-${id}`}
             initialState={initialState}
             onChange={handleEditorChange}
+            onRequestSuggestion={handleRequestSuggestion}
             autoFocus
           />
         </div>
