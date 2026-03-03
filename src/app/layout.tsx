@@ -1,10 +1,18 @@
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+import { Inter, Merriweather } from 'next/font/google';
 import { ClerkProvider } from '@clerk/nextjs';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'], weight: ['300', '400', '500', '600', '700', '900'] });
+
+export const merriweather = Merriweather({
+  subsets: ['latin'],
+  weight: ['300', '400', '700', '900'],
+  style: ['normal', 'italic'],
+  variable: '--font-merriweather',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   title: 'Notepress - O sistema operacional da inovação',
@@ -28,7 +36,7 @@ export default function RootLayout({
             rel="stylesheet"
           />
         </head>
-        <body className={inter.className}>
+        <body className={`${inter.className} ${merriweather.variable}`}>
           <ThemeProvider>{children}</ThemeProvider>
         </body>
       </html>
