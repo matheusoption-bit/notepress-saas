@@ -41,12 +41,14 @@ import {
   Cpu,
   ClipboardList,
   DollarSign,
+  Mic,
 } from 'lucide-react';
 import { $createHorizontalRuleNode } from '@lexical/react/LexicalHorizontalRuleNode';
 import {
   INSERT_TRL_WIDGET_COMMAND,
   INSERT_EDITAL_CHECKLIST_COMMAND,
   INSERT_COST_TABLE_COMMAND,
+  INSERT_BRAINSTORM_COMMAND,
 } from './CustomNodes';
 
 // ── Definição dos itens do menu ────────────────────────────────
@@ -228,6 +230,19 @@ const SLASH_COMMANDS: SlashCommandDef[] = [
     keywords: ['custos', 'orcamento', 'tabela', 'financeiro', 'verba', 'valor'],
     onSelect: (editor) => {
       editor.dispatchCommand(INSERT_COST_TABLE_COMMAND, {});
+    },
+  },
+  {
+    key: 'brainstorm',
+    label: 'Brainstorm por Voz',
+    description: 'Grave uma ideia e a IA estrutura automaticamente',
+    icon: <Mic size={16} className="text-rose-400" />,
+    keywords: ['brainstorm', 'audio', 'voz', 'gravar', 'ideia', 'ia', 'microfone'],
+    onSelect: (editor) => {
+      // Insere o nó em modo loading; a gravação é iniciada pelo botão na topbar
+      editor.dispatchCommand(INSERT_BRAINSTORM_COMMAND, { isLoading: false });
+      // Sinaliza para o BrainstormRecordButton iniciar a gravação
+      window.dispatchEvent(new CustomEvent('notepress:brainstorm-start'));
     },
   },
 ];

@@ -2129,3 +2129,357 @@ body {
   80%  { opacity: 0.8; }
   100% { opacity: 0; }
 }
+
+/* ============================================================
+   BrainstormNode — Card de Brainstorm por Voz
+   ============================================================ */
+
+.brainstorm-node {
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(244, 63, 94, 0.15);
+  border-radius: 10px;
+  overflow: hidden;
+  transition: border-color 0.2s;
+  animation: brainstormEntrance 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes brainstormEntrance {
+  from { opacity: 0; transform: translateY(10px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0)   scale(1);    }
+}
+
+/* Header */
+.brainstorm-node__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 14px;
+  background: rgba(244, 63, 94, 0.06);
+  border-bottom: 1px solid rgba(244, 63, 94, 0.1);
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+
+.brainstorm-node__header:hover {
+  background: rgba(244, 63, 94, 0.1);
+}
+
+.brainstorm-node__header:focus-visible {
+  outline: 2px solid rgba(244, 63, 94, 0.5);
+  outline-offset: -2px;
+}
+
+.brainstorm-node__header-left {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex: 1;
+  min-width: 0;
+}
+
+.brainstorm-node__icon-wrap {
+  display: flex;
+  align-items: center;
+  color: #fb7185;
+}
+
+.brainstorm-node__title {
+  font-family: var(--font-sans, Inter, sans-serif);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #fda4af;
+}
+
+.brainstorm-node__loading-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  background: rgba(167, 139, 250, 0.12);
+  border: 1px solid rgba(167, 139, 250, 0.25);
+  border-radius: 9999px;
+  font-size: 0.6875rem;
+  color: #c4b5fd;
+  font-weight: 500;
+}
+
+.brainstorm-node__ai-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 7px;
+  background: rgba(124, 58, 237, 0.12);
+  border: 1px solid rgba(124, 58, 237, 0.25);
+  border-radius: 9999px;
+  font-size: 0.6875rem;
+  color: #a78bfa;
+  font-weight: 600;
+}
+
+.brainstorm-node__chevron {
+  color: #71717a;
+  display: flex;
+  align-items: center;
+}
+
+.brainstorm-node__spinner {
+  animation: spin 0.9s linear infinite;
+}
+
+/* Corpo */
+.brainstorm-node__body {
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Estado de loading */
+.brainstorm-node__loading-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 24px 0;
+  color: #71717a;
+  font-size: 0.8125rem;
+}
+
+.brainstorm-node__loading-body p {
+  margin: 0;
+  font-family: var(--font-sans, Inter, sans-serif);
+}
+
+/* Seções */
+.brainstorm-node__section {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  padding-bottom: 12px;
+}
+
+.brainstorm-node__section--last {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.brainstorm-node__section-title {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-sans, Inter, sans-serif);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #71717a;
+  margin: 0 0 8px;
+}
+
+/* Transcrição */
+.brainstorm-node__transcricao {
+  font-family: var(--font-merriweather, Merriweather, serif);
+  font-size: 0.8125rem;
+  line-height: 1.7;
+  color: #71717a;
+  font-style: italic;
+  margin: 0;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 6px;
+  border-left: 2px solid rgba(244, 63, 94, 0.25);
+}
+
+/* Resumo */
+.brainstorm-node__resumo {
+  font-family: var(--font-merriweather, Merriweather, serif);
+  font-size: 0.875rem;
+  line-height: 1.75;
+  color: #d4d4d8;
+  margin: 0;
+}
+
+/* Lista de Plano de Ação */
+.brainstorm-node__action-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.brainstorm-node__action-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  transition: background 0.1s;
+}
+
+.brainstorm-node__action-item:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.brainstorm-node__action-item--done .brainstorm-node__action-text {
+  text-decoration: line-through;
+  color: #52525b;
+}
+
+.brainstorm-node__check-btn {
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  margin-top: 2px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.brainstorm-node__check-box {
+  display: block;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
+  background: transparent;
+  transition: all 0.15s;
+  position: relative;
+}
+
+.brainstorm-node__check-box--done {
+  background: #7c3aed;
+  border-color: #7c3aed;
+}
+
+.brainstorm-node__check-box--done::after {
+  content: '';
+  position: absolute;
+  top: 1px;
+  left: 4px;
+  width: 4px;
+  height: 7px;
+  border: 1.5px solid #fff;
+  border-top: none;
+  border-left: none;
+  transform: rotate(45deg);
+}
+
+.brainstorm-node__action-text {
+  font-family: var(--font-sans, Inter, sans-serif);
+  font-size: 0.8125rem;
+  line-height: 1.55;
+  color: #d4d4d8;
+}
+
+/* Lista de Sugestões de Pesquisa */
+.brainstorm-node__research-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.brainstorm-node__research-item {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  font-family: var(--font-sans, Inter, sans-serif);
+  font-size: 0.8125rem;
+  color: #a1a1aa;
+  line-height: 1.5;
+}
+
+.brainstorm-node__research-dot {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(244, 63, 94, 0.5);
+  flex-shrink: 0;
+  margin-top: 5px;
+}
+
+/* ============================================================
+   BrainstormRecordButton — Botão de gravação na topbar
+   ============================================================ */
+
+.brainstorm-record-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  height: 30px;
+  border-radius: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: transparent;
+  color: #71717a;
+  font-size: 0.75rem;
+  font-weight: 500;
+  font-family: var(--font-sans, Inter, sans-serif);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.brainstorm-record-btn:hover:not(:disabled) {
+  background: rgba(244, 63, 94, 0.08);
+  border-color: rgba(244, 63, 94, 0.25);
+  color: #fb7185;
+}
+
+/* Estado: gravando */
+.brainstorm-record-btn--recording {
+  background: rgba(244, 63, 94, 0.1) !important;
+  border-color: rgba(244, 63, 94, 0.35) !important;
+  color: #fb7185 !important;
+}
+
+/* Estado: processando */
+.brainstorm-record-btn--processing {
+  background: rgba(167, 139, 250, 0.08) !important;
+  border-color: rgba(167, 139, 250, 0.2) !important;
+  color: #c4b5fd !important;
+  cursor: not-allowed;
+}
+
+/* Estado: erro */
+.brainstorm-record-btn--error {
+  background: rgba(239, 68, 68, 0.08) !important;
+  border-color: rgba(239, 68, 68, 0.2) !important;
+  color: #f87171 !important;
+}
+
+.brainstorm-record-btn__icon {
+  flex-shrink: 0;
+}
+
+.brainstorm-record-btn__label {
+  font-variant-numeric: tabular-nums;
+}
+
+.brainstorm-record-btn__spin {
+  animation: spin 0.9s linear infinite;
+}
+
+/* Pulso de gravação ativo */
+.brainstorm-record-btn__pulse {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #fb7185;
+  animation: recPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes recPulse {
+  0%   { transform: scale(1);   opacity: 1; }
+  50%  { transform: scale(1.5); opacity: 0.5; }
+  100% { transform: scale(1);   opacity: 1; }
+}

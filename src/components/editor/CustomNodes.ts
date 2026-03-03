@@ -11,6 +11,7 @@
  * TRL Slider    | TRLNode                | INSERT_TRL_WIDGET_COMMAND
  * Checklist     | EditalChecklistNode    | INSERT_EDITAL_CHECKLIST_COMMAND
  * Tabela Custos | CostTableNode          | INSERT_COST_TABLE_COMMAND
+ * Brainstorm    | BrainstormNode         | INSERT_BRAINSTORM_COMMAND
  * ────────────────────────────────────────────────
  */
 
@@ -20,24 +21,29 @@ import type { Klass, LexicalNode } from 'lexical';
 export { TRLNode, $createTRLNode, $isTRLNode } from './nodes/TRLNode';
 export { EditalChecklistNode, $createEditalChecklistNode, $isEditalChecklistNode } from './nodes/EditalChecklistNode';
 export { CostTableNode, $createCostTableNode, $isCostTableNode } from './nodes/CostTableNode';
+export { BrainstormNode, $createBrainstormNode, $isBrainstormNode } from './nodes/BrainstormNode';
 
 // ── Comandos de Inserção ───────────────────────────────────────
 export { INSERT_TRL_WIDGET_COMMAND }          from './nodes/TRLNode';
 export { INSERT_EDITAL_CHECKLIST_COMMAND }     from './nodes/EditalChecklistNode';
 export { INSERT_COST_TABLE_COMMAND }          from './nodes/CostTableNode';
+export { INSERT_BRAINSTORM_COMMAND }           from './nodes/BrainstormNode';
 
 // ── Tipos serializados (para JSON do Prisma) ───────────────────
 export type { SerializedTRLNode }              from './nodes/TRLNode';
 export type { SerializedEditalChecklistNode, ChecklistItem } from './nodes/EditalChecklistNode';
 export type { SerializedCostTableNode, CostRow }             from './nodes/CostTableNode';
+export type { SerializedBrainstormNode, BrainstormPayload }  from './nodes/BrainstormNode';
 
 // ── Array de registro para o LexicalComposer ──────────────────
 import { TRLNode }             from './nodes/TRLNode';
 import { EditalChecklistNode } from './nodes/EditalChecklistNode';
 import { CostTableNode }       from './nodes/CostTableNode';
+import { BrainstormNode }      from './nodes/BrainstormNode';
 
 export const CUSTOM_NODES: Klass<LexicalNode>[] = [
   TRLNode,
   EditalChecklistNode,
   CostTableNode,
+  BrainstormNode,
 ];

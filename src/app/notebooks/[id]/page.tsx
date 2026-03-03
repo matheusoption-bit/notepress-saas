@@ -30,6 +30,7 @@ import {
   Minimize2,
 } from 'lucide-react';
 import LexicalEditor from '@/components/editor/LexicalEditor';
+import { BrainstormRecordButton } from '@/components/editor/AudioRecorderPlugin';
 import SourcesSidebar from '@/components/SourcesSidebar';
 import RightPanel from '@/components/RightPanel';
 
@@ -171,6 +172,8 @@ export default function NotebookPage({
             >
               {fullZen ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
             </button>
+
+            <BrainstormRecordButton />
 
             <button
               className="notebook-topbar__btn"

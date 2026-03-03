@@ -30,6 +30,7 @@ import FloatingActionToolbar, {
 } from './FloatingActionToolbar';
 import { CUSTOM_NODES } from './CustomNodes';
 import WidgetInsertPlugin from './WidgetInsertPlugin';
+import AudioRecorderPlugin from './AudioRecorderPlugin';
 
 // ── Nodes registrados ──────────────────────────────────────────
 const editorNodes = [
@@ -195,6 +196,9 @@ export default function LexicalEditor({
 
             {/* ── AI Stamp (decoração de parágrafos IA) */}
             <AIStampPlugin />
+
+            {/* ── Brainstorm: escuta evento e insere BrainstormNode ── */}
+            {!readOnly && <AudioRecorderPlugin />}
           </div>
         </div>
       </LexicalComposer>

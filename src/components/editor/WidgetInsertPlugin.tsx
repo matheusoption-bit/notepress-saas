@@ -20,9 +20,16 @@ import { mergeRegister } from '@lexical/utils';
 import { $createTRLNode, INSERT_TRL_WIDGET_COMMAND }                      from './nodes/TRLNode';
 import { $createEditalChecklistNode, INSERT_EDITAL_CHECKLIST_COMMAND }    from './nodes/EditalChecklistNode';
 import { $createCostTableNode, INSERT_COST_TABLE_COMMAND }                from './nodes/CostTableNode';
+import { $createBrainstormNode, INSERT_BRAINSTORM_COMMAND }               from './nodes/BrainstormNode';
 
 // ── Utilitário: insere nó de bloco na posição atual ────────────
-function insertBlock(editor: ReturnType<typeof useLexicalComposerContext>[0], node: ReturnType<typeof $createTRLNode | typeof $createEditalChecklistNode | typeof $createCostTableNode>) {
+type AnyWidgetNode = ReturnType<
+  | typeof $createTRLNode
+  | typeof $createEditalChecklistNode
+  | typeof $createCostTableNode
+  | typeof $createBrainstormNode
+>;
+function insertBlock(editor: ReturnType<typeof useLexicalComposerContext>[0], node: AnyWidgetNode) {
   editor.update(() => {
     const selection = $getSelection();
     if ($isRangeSelection(selection)) {
@@ -73,6 +80,17 @@ export default function WidgetInsertPlugin() {
             payload?.editalNome ?? 'Edital',
             payload?.valorMax ?? null,
           );
+          insertBlock(editor, node);
+          return true;
+        },
+        COMMAND_PRIORITY_NORMAL,
+      ),
+
+      // ── Brainstorm ─────────────────────────────────────────
+      editor.registerCommand(
+        INSERT_BRAINSTORM_COMMAND,
+        (payload) => {
+          const node = $createBrainstormNode(payload ?? {});
           insertBlock(editor, node);
           return true;
         },
