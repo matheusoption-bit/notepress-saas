@@ -42,6 +42,7 @@ import {
   ClipboardList,
   DollarSign,
   Mic,
+  GitBranch,
 } from 'lucide-react';
 import { $createHorizontalRuleNode } from '@lexical/react/LexicalHorizontalRuleNode';
 import {
@@ -49,6 +50,7 @@ import {
   INSERT_EDITAL_CHECKLIST_COMMAND,
   INSERT_COST_TABLE_COMMAND,
   INSERT_BRAINSTORM_COMMAND,
+  INSERT_MERMAID_COMMAND,
 } from './CustomNodes';
 
 // ── Definição dos itens do menu ────────────────────────────────
@@ -243,6 +245,16 @@ const SLASH_COMMANDS: SlashCommandDef[] = [
       editor.dispatchCommand(INSERT_BRAINSTORM_COMMAND, { isLoading: false });
       // Sinaliza para o BrainstormRecordButton iniciar a gravação
       window.dispatchEvent(new CustomEvent('notepress:brainstorm-start'));
+    },
+  },
+  {
+    key: 'diagrama',
+    label: 'Diagrama Mermaid',
+    description: 'Insere um diagrama de fluxo, sequência ou er interativo',
+    icon: <GitBranch size={16} className="text-violet-400" />,
+    keywords: ['diagrama', 'mermaid', 'fluxo', 'flowchart', 'sequencia', 'er', 'grafico', 'uml'],
+    onSelect: (editor) => {
+      editor.dispatchCommand(INSERT_MERMAID_COMMAND, {});
     },
   },
 ];

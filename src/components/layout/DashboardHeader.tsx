@@ -1,28 +1,29 @@
 "use client";
 
-import { useState } from "react";
+import { useKBar } from 'kbar';
 
 export function DashboardHeader() {
-  const [query, setQuery] = useState("");
+  const { query } = useKBar();
 
   return (
     <header className="sticky top-0 z-40 w-full bg-[#09090b]/80 backdrop-blur-md border-b border-white/5">
       <div className="flex h-20 items-center justify-between px-8 gap-8">
 
-        {/* Busca central */}
+        {/* Busca central — abre o Command Palette ao clicar ou pressionar ⌘K */}
         <div className="flex-1 flex justify-center">
           <div className="w-full max-w-2xl relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <span className="material-symbols-outlined text-zinc-500">search</span>
             </div>
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              className="block w-full rounded-xl border-0 bg-[#18181b] py-2.5 pl-10 pr-12 text-zinc-300 ring-1 ring-inset ring-white/10 placeholder:text-zinc-500 focus:ring-2 focus:ring-inset focus:ring-violet-600 sm:text-sm transition-all outline-none"
-              placeholder="Buscar notebooks, editais ou ações..."
-              type="text"
-            />
-            <div className="absolute inset-y-0 right-0 flex items-center pr-2">
+            <button
+              type="button"
+              onClick={() => query.toggle()}
+              className="block w-full rounded-xl border-0 bg-[#18181b] py-2.5 pl-10 pr-12 text-left text-zinc-500 ring-1 ring-inset ring-white/10 hover:ring-violet-600/50 hover:bg-[#1c1c20] sm:text-sm transition-all outline-none cursor-text"
+              aria-label="Abrir paleta de comandos (⌘K)"
+            >
+              Buscar notebooks, editais ou ações…
+            </button>
+            <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
               <kbd className="inline-flex items-center rounded border border-white/10 px-2 py-0.5 font-sans text-xs text-zinc-500">
                 ⌘K
               </kbd>

@@ -21,6 +21,7 @@ import { $createTRLNode, INSERT_TRL_WIDGET_COMMAND }                      from '
 import { $createEditalChecklistNode, INSERT_EDITAL_CHECKLIST_COMMAND }    from './nodes/EditalChecklistNode';
 import { $createCostTableNode, INSERT_COST_TABLE_COMMAND }                from './nodes/CostTableNode';
 import { $createBrainstormNode, INSERT_BRAINSTORM_COMMAND }               from './nodes/BrainstormNode';
+import { $createMermaidDiagramNode, INSERT_MERMAID_COMMAND }              from './nodes/MermaidDiagramNode';
 
 // ── Utilitário: insere nó de bloco na posição atual ────────────
 type AnyWidgetNode = ReturnType<
@@ -28,6 +29,7 @@ type AnyWidgetNode = ReturnType<
   | typeof $createEditalChecklistNode
   | typeof $createCostTableNode
   | typeof $createBrainstormNode
+  | typeof $createMermaidDiagramNode
 >;
 function insertBlock(editor: ReturnType<typeof useLexicalComposerContext>[0], node: AnyWidgetNode) {
   editor.update(() => {
@@ -91,6 +93,17 @@ export default function WidgetInsertPlugin() {
         INSERT_BRAINSTORM_COMMAND,
         (payload) => {
           const node = $createBrainstormNode(payload ?? {});
+          insertBlock(editor, node);
+          return true;
+        },
+        COMMAND_PRIORITY_NORMAL,
+      ),
+
+      // ── Mermaid Diagram ────────────────────────────────────
+      editor.registerCommand(
+        INSERT_MERMAID_COMMAND,
+        (payload) => {
+          const node = $createMermaidDiagramNode(payload?.code);
           insertBlock(editor, node);
           return true;
         },

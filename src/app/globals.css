@@ -1176,6 +1176,251 @@ body {
   flex-shrink: 0;
 }
 
+/* Spinner de loading nos botões de ação */
+.fat-toolbar__spinner {
+  animation: fatToolbarSpin 0.75s linear infinite;
+}
+
+@keyframes fatToolbarSpin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* ============================================================
+   CommandBar (kbar) — Paleta de Comandos glassmorphism
+   ============================================================ */
+
+/* Painel principal */
+.command-bar__panel {
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+  border-radius: 18px;
+  overflow: hidden;
+  background: rgba(10, 8, 22, 0.92);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  box-shadow:
+    0 0 0 1px rgba(139, 92, 246, 0.12),
+    0 24px 64px -12px rgba(0, 0, 0, 0.75),
+    0 0 80px -20px rgba(124, 58, 237, 0.18);
+  animation: commandBarIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes commandBarIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Área de busca */
+.command-bar__search-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.command-bar__search-icon {
+  color: #6366f1;
+  flex-shrink: 0;
+}
+
+/* Input de busca — o kbar injeta estilos inline; sobrescrevemos aqui */
+.command-bar__search-input {
+  flex: 1;
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  font-size: 15px !important;
+  color: #e2e8f0 !important;
+  caret-color: #a78bfa;
+  font-family: inherit;
+}
+
+.command-bar__search-input::placeholder {
+  color: #475569 !important;
+}
+
+/* Badge ESC */
+.command-bar__esc-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border-radius: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  font-size: 11px;
+  color: #475569;
+  background: rgba(255, 255, 255, 0.04);
+  flex-shrink: 0;
+  font-family: inherit;
+}
+
+/* Container dos resultados */
+.command-bar__results-wrap {
+  max-height: 380px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(139, 92, 246, 0.25) transparent;
+}
+
+.command-bar__results-wrap::-webkit-scrollbar {
+  width: 4px;
+}
+.command-bar__results-wrap::-webkit-scrollbar-track {
+  background: transparent;
+}
+.command-bar__results-wrap::-webkit-scrollbar-thumb {
+  background: rgba(139, 92, 246, 0.25);
+  border-radius: 99px;
+}
+
+/* Rótulo de seção */
+.command-bar__section-label {
+  padding: 14px 18px 6px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #475569;
+  user-select: none;
+}
+
+/* Item de resultado */
+.command-bar__result {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 18px;
+  cursor: pointer;
+  transition: background 0.1s;
+  border-radius: 0;
+}
+
+.command-bar__result--active {
+  background: rgba(124, 58, 237, 0.15);
+}
+
+/* Ícone do resultado */
+.command-bar__result-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #a1a1aa;
+  flex-shrink: 0;
+  transition: background 0.1s, color 0.1s;
+}
+
+.command-bar__result--active .command-bar__result-icon {
+  background: rgba(124, 58, 237, 0.22);
+  color: #c4b5fd;
+}
+
+/* Texto do resultado */
+.command-bar__result-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.command-bar__result-ancestors {
+  font-size: 11px;
+  color: #64748b;
+}
+
+.command-bar__result-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: #cbd5e1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color 0.1s;
+}
+
+.command-bar__result--active .command-bar__result-name {
+  color: #ede9fe;
+}
+
+.command-bar__result-subtitle {
+  font-size: 11px;
+  color: #475569;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Atalhos de teclado */
+.command-bar__result-shortcuts {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.command-bar__kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: rgba(255, 255, 255, 0.05);
+  font-size: 11px;
+  color: #64748b;
+  font-family: inherit;
+}
+
+.command-bar__result--active .command-bar__kbd {
+  border-color: rgba(139, 92, 246, 0.35);
+  color: #a78bfa;
+}
+
+/* Rodapé com dicas */
+.command-bar__footer {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 18px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(0, 0, 0, 0.20);
+}
+
+.command-bar__footer-hint {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: #334155;
+}
+
+.command-bar__footer-hint kbd {
+  font-family: inherit;
+  font-size: 10px;
+  color: #475569;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  padding: 0 4px;
+}
+
 /* ============================================================
    AI Stamp — Decoração de parágrafos gerados/revisados por IA
    ============================================================ */
