@@ -43,6 +43,7 @@ import {
   DollarSign,
   Mic,
   GitBranch,
+  BrainCircuit,
 } from 'lucide-react';
 import { $createHorizontalRuleNode } from '@lexical/react/LexicalHorizontalRuleNode';
 import {
@@ -51,6 +52,7 @@ import {
   INSERT_COST_TABLE_COMMAND,
   INSERT_BRAINSTORM_COMMAND,
   INSERT_MERMAID_COMMAND,
+  INSERT_DEBATE_CONSENSUS_COMMAND,
 } from './CustomNodes';
 
 // ── Definição dos itens do menu ────────────────────────────────
@@ -255,6 +257,20 @@ const SLASH_COMMANDS: SlashCommandDef[] = [
     keywords: ['diagrama', 'mermaid', 'fluxo', 'flowchart', 'sequencia', 'er', 'grafico', 'uml'],
     onSelect: (editor) => {
       editor.dispatchCommand(INSERT_MERMAID_COMMAND, {});
+    },
+  },
+  {
+    key: 'consenso',
+    label: 'Consenso Quadripartite',
+    description: 'Bloco de consenso gerado pelo pipeline de IA Quadripartite',
+    icon: <BrainCircuit size={16} className="text-violet-400" />,
+    keywords: ['consenso', 'quadripartite', 'ia', 'debate', 'analise', 'confianca', 'resultado'],
+    onSelect: (editor) => {
+      editor.dispatchCommand(INSERT_DEBATE_CONSENSUS_COMMAND, {
+        consensus: '',
+        confidence: 0,
+        roundId: '',
+      });
     },
   },
 ];

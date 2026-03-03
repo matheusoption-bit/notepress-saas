@@ -10,6 +10,7 @@
 
 import { useEffect } from 'react';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
+import { type DebateConsensusPayload } from './nodes/DebateConsensusNode';
 import {
   $getSelection,
   $isRangeSelection,
@@ -22,6 +23,7 @@ import { $createEditalChecklistNode, INSERT_EDITAL_CHECKLIST_COMMAND }    from '
 import { $createCostTableNode, INSERT_COST_TABLE_COMMAND }                from './nodes/CostTableNode';
 import { $createBrainstormNode, INSERT_BRAINSTORM_COMMAND }               from './nodes/BrainstormNode';
 import { $createMermaidDiagramNode, INSERT_MERMAID_COMMAND }              from './nodes/MermaidDiagramNode';
+import { $createDebateConsensusNode, INSERT_DEBATE_CONSENSUS_COMMAND }    from './nodes/DebateConsensusNode';
 
 // ── Utilitário: insere nó de bloco na posição atual ────────────
 type AnyWidgetNode = ReturnType<
@@ -30,6 +32,7 @@ type AnyWidgetNode = ReturnType<
   | typeof $createCostTableNode
   | typeof $createBrainstormNode
   | typeof $createMermaidDiagramNode
+  | typeof $createDebateConsensusNode
 >;
 function insertBlock(editor: ReturnType<typeof useLexicalComposerContext>[0], node: AnyWidgetNode) {
   editor.update(() => {
@@ -109,7 +112,31 @@ export default function WidgetInsertPlugin() {
         },
         COMMAND_PRIORITY_NORMAL,
       ),
+
+      // ── Debate Consensus ───────────────────────────────────
+      editor.registerCommand(
+        INSERT_DEBATE_CONSENSUS_COMMAND,
+        (payload) => {
+          const node = $createDebateConsensusNode(payload ?? {});
+          insertBlock(editor, node);
+          return true;
+        },
+        COMMAND_PRIORITY_NORMAL,
+      ),
     );
+  }, [editor]);
+
+  // ── Bridge: window → Lexical (para componentes fora do Composer) ────────
+  // O DebateHistoryPanel (fora do LexicalComposer) dispara este evento
+  // e o plugin, que está dentro do Composer, redireciona para o comando.
+  useEffect(() => {
+    function onInsertConsensus(e: Event) {
+      const payload = (e as CustomEvent<DebateConsensusPayload>).detail;
+      editor.dispatchCommand(INSERT_DEBATE_CONSENSUS_COMMAND, payload);
+    }
+
+    window.addEventListener('notepress:insert-consensus', onInsertConsensus);
+    return () => window.removeEventListener('notepress:insert-consensus', onInsertConsensus);
   }, [editor]);
 
   return null;

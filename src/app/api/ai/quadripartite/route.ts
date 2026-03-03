@@ -395,6 +395,53 @@ export async function POST(req: Request) {
       .join('\n\n');
   }
 
+  // ─── Geração opcional de diagrama Mermaid ──────────────────────────────────
+  // Ativada quando o prompt contém termos visuais/estruturais E o consenso
+  // ainda não inclui um bloco ```mermaid (evita duplicação em re-runs).
+  const MERMAID_KEYWORDS = [
+    'fluxo', 'cronograma', 'diagrama', 'gantt',
+    'arquitetura', 'fluxograma', 'sequência', 'sequencia',
+    'processo', 'pipeline',
+  ];
+
+  const promptLower = userPrompt.toLowerCase();
+  const needsMermaid =
+    MERMAID_KEYWORDS.some((kw) => promptLower.includes(kw)) &&
+    !consensus.includes('```mermaid');
+
+  let mermaidCode: string | null = null;
+
+  if (needsMermaid) {
+    try {
+      const { text: mermaidRaw } = await generateText({
+        model: quadripartiteProviders.GEMINI_CREATE,
+        system:
+          'Você é um especialista em diagramas Mermaid.js. ' +
+          'Responda APENAS com um único bloco de código mermaid válido, sem texto adicional, ' +
+          'sem explicações, sem markdown além do próprio bloco. ' +
+          'Use flowchart TD ou gantt conforme o contexto. ' +
+          'O diagrama deve ter no máximo 20 nós/itens para manter a legibilidade. ' +
+          'Escreva labels em português.',
+        prompt:
+          `Com base no seguinte consenso de análise, gere um diagrama Mermaid (flowchart ou gantt) ` +
+          `que visualize o processo, arquitetura ou cronograma principal discutido:\n\n${consensus}`,
+        temperature: 0.3,
+        maxOutputTokens: 800,
+      });
+
+      // Extrai o bloco ```mermaid...``` do texto gerado
+      const match = mermaidRaw.match(/```mermaid\s*([\s\S]*?)```/i);
+      if (match) {
+        mermaidCode = match[1].trim();
+        // Anexa o bloco ao consenso para persistência no bloco de texto do editor
+        consensus = `${consensus}\n\n\`\`\`mermaid\n${mermaidCode}\n\`\`\``;
+      }
+    } catch (err) {
+      // Falha silenciosa — o diagrama é complementar, não bloqueia a resposta
+      console.warn('[quadripartite] Falha na geração do diagrama Mermaid:', err);
+    }
+  }
+
   // ─── Calcula confiança ─────────────────────────────────────────────────────
   const allRoundResults = [...round1Results, ...round2Results, ...round3Results];
   const confidence = calculateConfidence(allRoundResults, mode);
@@ -405,6 +452,7 @@ export async function POST(req: Request) {
       roundId: debateRound.id,
       consensus,
       confidence,
+      mermaidCode,        // null quando não gerado; string com o código Mermaid quando gerado
       mode,
       rounds: {
         1: round1Messages,
@@ -415,6 +463,7 @@ export async function POST(req: Request) {
         agents: ['GEMINI_SEARCH', 'GEMINI_CREATE', 'DEEPSEEK', 'LLAMA', 'WATSONX_BR'],
         stack: 'Google Gemini + DeepSeek + Groq/Llama + IBM WatsonX',
         rateLimitRemaining: remaining - 1,
+        mermaidGenerated: mermaidCode !== null,
       },
     },
     {
