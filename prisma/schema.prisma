@@ -7,28 +7,34 @@ datasource db {
 }
 
 model User {
-  id            String   @id @default(cuid())
-  clerkId       String   @unique
-  email         String   @unique
-  name          String?
-  imageUrl      String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id        String   @id @default(cuid())
+  clerkId   String   @unique
+  email     String   @unique
+  name      String?
+  imageUrl  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  profile       UserProfile?
-  notebooks     Notebook[]
-  solutions     Solution[]
-  subscriptions Subscription[]
+  profile               UserProfile?
+  notebooks             Notebook[]
+  solutions             Solution[]
+  subscriptions         Subscription[]
+  debateRounds          DebateRound[]
+  innovationValidations InnovationValidation[]
+  brainRuns             BrainRun[]
+  agentMemories         AgentMemory[]
 }
 
 model UserProfile {
-  id             String   @id @default(cuid())
-  userId         String   @unique
-  companyType    String?
+  id              String         @id @default(cuid())
+  userId          String         @unique
+  companyType     String?
   preferredThemes String[]
-  trlInterest    Int?
-  writingProfile WritingProfile @default(ACADEMICO_FORMAL)
-  user           User     @relation(fields: [userId], references: [id])
+  trlInterest     Int?
+  writingProfile  WritingProfile @default(ACADEMICO_FORMAL)
+  lensApiToken    String?        @db.Text
+  serpApiKey      String?        @db.Text
+  user            User           @relation(fields: [userId], references: [id])
 }
 
 model Solution {
@@ -49,10 +55,15 @@ model Notebook {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user      User     @relation(fields: [userId], references: [id])
-  document  Document?
-  sources   SourceFile[]
-  tasks     Task[]
+  user                  User                   @relation(fields: [userId], references: [id])
+  document              Document?
+  sources               SourceFile[]
+  tasks                 Task[]
+  debateRounds          DebateRound[]
+  snapshots             DocumentSnapshot[]
+  innovationValidations InnovationValidation[]
+  brainRuns             BrainRun[]
+  agentMemories         AgentMemory[]
 }
 
 model Document {
@@ -62,7 +73,8 @@ model Document {
   version    Int      @default(1)
   updatedAt  DateTime @updatedAt
 
-  notebook   Notebook @relation(fields: [notebookId], references: [id])
+  notebook  Notebook           @relation(fields: [notebookId], references: [id])
+  snapshots DocumentSnapshot[]
 }
 
 model SourceFile {
@@ -74,7 +86,7 @@ model SourceFile {
   size       Int
   uploadedAt DateTime @default(now())
 
-  notebook   Notebook @relation(fields: [notebookId], references: [id])
+  notebook Notebook @relation(fields: [notebookId], references: [id])
 }
 
 model Task {
@@ -87,47 +99,47 @@ model Task {
   status      TaskStatus @default(TODO)
   createdAt   DateTime   @default(now())
 
-  notebook    Notebook   @relation(fields: [notebookId], references: [id])
+  notebook Notebook @relation(fields: [notebookId], references: [id])
 }
 
 model Edital {
-  id                    String   @id @default(cuid())
-  nome                  String
-  orgao                 String
-  tipoInstrumento       String
-  abrangencia           String
-  uf                    String?
-  temas                 String[]
-  status                String   // aberto, fechado, fluxo_contínuo
-  dataAbertura          DateTime?
-  dataFechamento        DateTime?
-  valorMin              Float?
-  valorMax              Float?
-  contrapartida         String?
-  prazoExecucao         String?
-  trlEntrada            Int?
-  trlSaida              Int?
-  linkPaginaOficial     String?
-  linkInscricaoDireta   String?
-  resumo                String?
-  criteriosAvaliacao    Json?
-  documentosChecklist   Json?
-  passoAPasso           Json?
-  errosComuns           Json?
-  requerValidacao       Boolean  @default(false)
-  ultimaAtualizacao     DateTime @default(now())
+  id                  String    @id @default(cuid())
+  nome                String
+  orgao               String
+  tipoInstrumento     String
+  abrangencia         String
+  uf                  String?
+  temas               String[]
+  status              String // aberto, fechado, fluxo_contínuo
+  dataAbertura        DateTime?
+  dataFechamento      DateTime?
+  valorMin            Float?
+  valorMax            Float?
+  contrapartida       String?
+  prazoExecucao       String?
+  trlEntrada          Int?
+  trlSaida            Int?
+  linkPaginaOficial   String?
+  linkInscricaoDireta String?
+  resumo              String?
+  criteriosAvaliacao  Json?
+  documentosChecklist Json?
+  passoAPasso         Json?
+  errosComuns         Json?
+  requerValidacao     Boolean   @default(false)
+  ultimaAtualizacao   DateTime  @default(now())
 }
 
 model Subscription {
-  id              String   @id @default(cuid())
-  userId          String
-  status          String
-  plan            String
-  stripeSubId     String?  @unique
+  id               String    @id @default(cuid())
+  userId           String
+  status           String
+  plan             String
+  stripeSubId      String?   @unique
   currentPeriodEnd DateTime?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  user            User     @relation(fields: [userId], references: [id])
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  user             User      @relation(fields: [userId], references: [id])
 }
 
 enum WritingProfile {
@@ -136,8 +148,134 @@ enum WritingProfile {
   INSTITUCIONAL_PUBLICO
 }
 
+enum AgentType {
+  GEMINI
+  CLAUDE
+  GPT
+  ESPECIALISTA_BR
+}
+
+enum DebateMode {
+  CONSENSUS
+  DEVILS_ADVOCATE
+  STRESS_TEST
+  COMPLIANCE_ONLY
+}
+
 enum TaskStatus {
   TODO
   IN_PROGRESS
   DONE
+}
+
+// ─── AI Features ──────────────────────────────────────────────────────────────
+
+model DebateRound {
+  id         String     @id @default(cuid())
+  createdAt  DateTime   @default(now())
+  notebookId String
+  userId     String
+  mode       DebateMode
+  title      String?
+
+  notebook Notebook        @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages DebateMessage[]
+
+  @@index([notebookId])
+  @@index([userId])
+}
+
+model DebateMessage {
+  id            String    @id @default(cuid())
+  createdAt     DateTime  @default(now())
+  debateRoundId String
+  agentType     AgentType
+  content       String    @db.Text
+  round         Int
+
+  debateRound DebateRound @relation(fields: [debateRoundId], references: [id], onDelete: Cascade)
+
+  @@index([debateRoundId])
+}
+
+model DocumentSnapshot {
+  id         String   @id @default(cuid())
+  createdAt  DateTime @default(now())
+  notebookId String
+  documentId String
+  content    Json
+  label      String?
+  version    Int
+
+  notebook Notebook @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([notebookId])
+  @@index([documentId])
+}
+
+model InnovationValidation {
+  id         String   @id @default(cuid())
+  createdAt  DateTime @default(now())
+  notebookId String
+  userId     String
+  query      String   @db.Text
+  result     Json
+  score      Float?
+
+  notebook Notebook @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([notebookId])
+  @@index([userId])
+}
+
+model BrainRun {
+  id         String   @id @default(cuid())
+  createdAt  DateTime @default(now())
+  notebookId String
+  userId     String
+  prompt     String   @db.Text
+  status     String   @default("pending")
+
+  notebook Notebook    @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  user     User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nodes    BrainNode[]
+
+  @@index([notebookId])
+  @@index([userId])
+}
+
+model BrainNode {
+  id           String   @id @default(cuid())
+  createdAt    DateTime @default(now())
+  brainRunId   String
+  nodeType     String
+  content      Json
+  parentNodeId String?
+  order        Int
+
+  brainRun BrainRun @relation(fields: [brainRunId], references: [id], onDelete: Cascade)
+
+  @@index([brainRunId])
+  @@index([parentNodeId])
+}
+
+model AgentMemory {
+  id         String    @id @default(cuid())
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  userId     String
+  notebookId String?
+  agentType  AgentType
+  key        String
+  value      String    @db.Text
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notebook Notebook? @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, agentType, key])
+  @@index([userId])
+  @@index([notebookId])
 }
