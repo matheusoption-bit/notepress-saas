@@ -124,7 +124,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           "disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none",
           // Variante + tamanho
           variantStyles[variant],
-          size !== "link" && sizeStyles[size],
+          variant !== "link" && sizeStyles[size],
           fullWidth && "w-full",
           className
         )}

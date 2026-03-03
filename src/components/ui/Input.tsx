@@ -110,8 +110,8 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
               "disabled:opacity-40 disabled:cursor-not-allowed",
               // Tamanho
               sizeStyles[size],
-              leftElement && sizeIconPadding[size].left,
-              rightElement && sizeIconPadding[size].right,
+              leftElement ? sizeIconPadding[size].left : undefined,
+              rightElement ? sizeIconPadding[size].right : undefined,
               className
             )}
             {...props}

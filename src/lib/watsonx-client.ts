@@ -195,6 +195,7 @@ export function createWatsonxModel(
     name: 'watsonx',
     apiKey: 'iam-token-injected-via-fetch', // placeholder — substituído em watsonxFetch
     baseURL: `${serviceUrl}/ml/v1`,
+    // @ts-expect-error 'compatibility' existe em runtime mas não nos tipos do @ai-sdk/openai v3
     compatibility: 'compatible', // força /chat/completions em vez da Responses API do SDK v6
     fetch: watsonxFetch,
   });

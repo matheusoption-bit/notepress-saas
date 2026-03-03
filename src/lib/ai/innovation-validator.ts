@@ -11,7 +11,7 @@
 
 import { generateObject } from 'ai';
 import { z } from 'zod';
-import { gemini } from './ai-providers';
+import { geminiProvider as gemini } from './ai-providers';
 import { prisma } from '@/lib/prisma';
 
 // ─── Schema de resultado ──────────────────────────────────────────────────────

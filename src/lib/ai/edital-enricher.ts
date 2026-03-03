@@ -11,7 +11,7 @@
 
 import { generateObject, generateText } from 'ai';
 import { z } from 'zod';
-import { gemini, groq } from './ai-providers';
+import { geminiProvider as gemini, groqProvider as groq } from './ai-providers';
 
 // ─── Schemas ──────────────────────────────────────────────────────────────────
 
