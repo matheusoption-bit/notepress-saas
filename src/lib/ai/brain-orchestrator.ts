@@ -4,10 +4,10 @@
  * Notepress Brain — Cérebro Quadripartite
  *
  * Orquestra 4 agentes especializados em sequência, cada um com um papel distinto:
- *   GEMINI       → Analyst   : análise profunda de documentos (contexto longo)
- *   CLAUDE       → Reviewer  : revisão crítica e identificação de riscos
- *   GPT          → Executor  : estruturação em checklist, passos e ações concretas
- *   PERPLEXITY   → EspecialistaBR : contexto regulatório brasileiro em tempo real
+ *   GEMINI_SEARCH  → Analyst      : busca web em tempo real + análise de documentos
+ *   DEEPSEEK       → Reviewer     : análise quantitativa e revisão crítica
+ *   LLAMA          → Executor     : estruturação em checklist, passos e ações concretas
+ *   WATSONX_BR     → Compliance BR: contexto regulatório e marcos legais brasileiros
  *
  * Padrão: adaptado do "ConversationManager" do api-cookbook da Perplexity.
  *
@@ -20,7 +20,7 @@ import { prisma } from '@/lib/prisma';
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
-export type AgentRole = 'ANALYST' | 'REVIEWER' | 'EXECUTOR' | 'SYNTHESIS';
+export type AgentRole = 'ANALYST' | 'REVIEWER' | 'EXECUTOR' | 'COMPLIANCE_BR';
 
 export type QuadripartiteAgentType = 'GEMINI_SEARCH' | 'GEMINI_CREATE' | 'DEEPSEEK' | 'LLAMA' | 'WATSONX_BR';
 
@@ -85,7 +85,7 @@ MISSÃO: Com base nas análises anteriores, estruturar:
 
 ESTILO: Objetivo, estruturado, prático. Use listas e tabelas markdown. Evite texto corrido.`,
 
-  SYNTHESIS: `Você é o Agente EspecialistaBR do Notepress Brain — especialista em regulamentação, marcos legais e contexto de inovação no Brasil, com acesso a informações em tempo real.
+  COMPLIANCE_BR: `Você é o Agente EspecialistaBR do Notepress Brain — especialista em regulamentação, marcos legais e contexto de inovação no Brasil, com acesso a informações em tempo real.
 
 MISSÃO: Validar e contextualizar a proposta dentro do ecossistema brasileiro:
 - Marcos legais aplicáveis (Lei do Bem, Lei de Informática, LGPD, etc.)
@@ -197,7 +197,7 @@ const AGENT_SEQUENCE: Array<{
   { role: 'ANALYST',        agentType: 'GEMINI_SEARCH' }, // Auditor Web — pesquisa em tempo real
   { role: 'REVIEWER',       agentType: 'DEEPSEEK' },       // Analista Quantitativo — revisão crítica
   { role: 'EXECUTOR',       agentType: 'LLAMA' },           // Revisor Ultra-Rápido — estruturação
-  { role: 'SYNTHESIS', agentType: 'WATSONX_BR' },    // Árbitro de Compliance BR
+  { role: 'COMPLIANCE_BR', agentType: 'WATSONX_BR' },    // Árbitro de Compliance BR
 ];
 
 /**

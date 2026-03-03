@@ -11,7 +11,7 @@
 
 import { generateObject } from 'ai';
 import { z } from 'zod';
-import { sonar } from './perplexity-client';
+import { gemini } from './ai-providers';
 import { prisma } from '@/lib/prisma';
 
 // ─── Schema de resultado ──────────────────────────────────────────────────────
@@ -119,7 +119,7 @@ export async function validateInnovation(
     .join('\n');
 
   const { object } = await generateObject({
-    model: sonar('sonar-pro'),
+    model: gemini('gemini-2.5-flash'),
     schema: InnovationResultSchema,
     system: SYSTEM_PROMPT,
     prompt,

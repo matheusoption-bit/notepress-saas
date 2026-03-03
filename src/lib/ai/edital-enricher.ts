@@ -11,7 +11,7 @@
 
 import { generateObject, generateText } from 'ai';
 import { z } from 'zod';
-import { sonar } from './perplexity-client';
+import { gemini, groq } from './ai-providers';
 
 // ─── Schemas ──────────────────────────────────────────────────────────────────
 
@@ -112,7 +112,7 @@ export async function enrichEdital(input: EnrichEditalInput): Promise<EditalEnri
   const prompt = buildEditalPrompt(input);
 
   const { object } = await generateObject({
-    model: sonar('sonar-pro'),
+    model: gemini('gemini-2.5-flash'),
     schema: EditalEnrichmentSchema,
     system: ENRICHMENT_SYSTEM,
     prompt,
@@ -136,7 +136,7 @@ export async function generateEditalSummary(input: EnrichEditalInput): Promise<E
     (input.resumo ? `Resumo oficial: ${input.resumo}\n` : '');
 
   const { object } = await generateObject({
-    model: sonar('llama-3.1-sonar-small-128k-online'),
+    model: groq('llama-3.3-70b-versatile'),
     schema: EditalSummarySchema,
     system:
       'Você cria títulos e chamadas atraentes para editais de fomento. ' +
@@ -170,7 +170,7 @@ export async function compareEditais(
     .join('\n---\n');
 
   const { text } = await generateText({
-    model: sonar('sonar-pro'),
+    model: gemini('gemini-2.5-flash'),
     system: ENRICHMENT_SYSTEM,
     prompt:
       `Compare os seguintes editais e indique qual é mais adequado para este perfil de empresa:\n\n` +
@@ -189,7 +189,7 @@ export async function compareEditais(
  */
 export async function checkEditalStatus(nomeEdital: string, orgao: string): Promise<string> {
   const { text } = await generateText({
-    model: sonar('llama-3.1-sonar-small-128k-online'),
+    model: groq('llama-3.3-70b-versatile'),
     system:
       'Você pesquisa o status atual de editais de fomento no Brasil. ' +
       'Informe se está aberto, encerrado, ou se houve prorrogação, com links quando disponíveis.',

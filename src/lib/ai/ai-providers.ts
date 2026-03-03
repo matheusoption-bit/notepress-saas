@@ -18,7 +18,7 @@ export const groq = createGroq({
 export const quadripartiteProviders = {
   GEMINI_SEARCH: gemini('gemini-2.5-flash'),
   GEMINI_CREATE: gemini('gemini-2.5-flash'),
-  DEEPSEEK:      deepseek('deepseek/deepseek-r1:free'),
+  DEEPSEEK:      deepseek('deepseek/deepseek-r1-0528'),
   LLAMA:         groq('llama-3.3-70b-versatile'),
   WATSONX_BR:    groq('llama-3.3-70b-versatile'),
 };
