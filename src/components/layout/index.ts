@@ -8,3 +8,5 @@ export { Layout } from "./Layout";
 export { Sidebar } from "./Sidebar";
 export { SidebarProvider, useSidebar } from "./SidebarContext";
 export { FloatingChat } from "./FloatingChat";
+export { DashboardSidebar } from "./DashboardSidebar";
+export { DashboardHeader } from "./DashboardHeader";

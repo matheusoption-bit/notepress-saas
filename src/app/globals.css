@@ -324,3 +324,78 @@ body {
 .animate-fade-up    { animation: fade-up  var(--transition-slow)   forwards; }
 .animate-scale-in   { animation: scale-in var(--transition-fast)   forwards; }
 .animate-pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
+
+/* ============================================================
+   Dashboard — Design System (dark-first)
+   ============================================================ */
+
+/* Tokens de cor para o dashboard escuro */
+:root {
+  --dash-bg:            #09090b;
+  --dash-surface:       #18181b;
+  --dash-surface-hover: #27272a;
+  --dash-border:        rgba(255, 255, 255, 0.08);
+  --dash-primary:       #3b2bee;
+}
+
+/* Scrollbar do dashboard */
+.dash-scroll::-webkit-scrollbar          { width: 8px; }
+.dash-scroll::-webkit-scrollbar-track    { background: #09090b; }
+.dash-scroll::-webkit-scrollbar-thumb    { background: #27272a; border-radius: 4px; }
+.dash-scroll::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
+
+/* Painel vidro (glass morphism) */
+.glass-panel {
+  background: rgba(24, 24, 27, 0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Sidebar: texto que aparece no hover */
+.nav-text {
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.sidebar-group:hover .nav-text {
+  opacity: 1;
+}
+
+/* Fundo com aura violeta */
+.aura-glow {
+  background: radial-gradient(
+    circle at top left,
+    rgba(124, 58, 237, 0.15) 0%,
+    rgba(9, 9, 11, 0) 50%
+  );
+}
+
+/* Sombra de brilho primário */
+.shadow-glow {
+  box-shadow: 0 0 100px -20px rgba(59, 43, 238, 0.3);
+}
+
+/* Suprime outline do input de busca da hero */
+.search-pill-input:focus,
+.search-pill-input:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Barra de match IA */
+.match-progress-container {
+  height: 6px;
+  width: 100%;
+  background-color: #27272a;
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.match-progress-bar {
+  height: 100%;
+  border-radius: 9999px;
+  background: linear-gradient(to right, #7c3aed, #3b2bee);
+  transition: width 0.6s ease-out;
+}

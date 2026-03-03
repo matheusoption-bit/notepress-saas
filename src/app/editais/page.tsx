@@ -1,10 +1,13 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { Calendar, Building2, Clock, ArrowRight } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
+import { SearchHero } from "@/components/editais/SearchHero";
+import { EditalGrid } from "@/components/editais/EditalGrid";
+import type { EditalCardData } from "@/components/editais/EditalCard";
 
-type Edital = {
+/* ── Tipos da API ──────────────────────────────────── */
+
+type ApiEdital = {
   id: string;
   nome: string;
   orgao: string;
@@ -13,72 +16,101 @@ type Edital = {
   status: string;
 };
 
+/* ── Enriquecimento mock (até a API suportar esses campos) ── */
+
+const TIPOS = ["Subvenção", "Pesquisa", "Crédito", "Bolsas", "Parceria", "Infraestrutura"];
+const TRLS = ["3 a 7", "4+", "6 a 9", "N/A", "3 a 6", "1 a 4"];
+const DESCRICOES = [
+  "Chamada pública para projetos de inovação aplicada à indústria 4.0, focando em otimização de processos e eficiência energética.",
+  "Apoio para desenvolvimento de produto e inserção no mercado para pequenas empresas com base tecnológica.",
+  "Fomento para tecnologias aplicadas ao agronegócio sustentável, visando aumento de produtividade.",
+  "Recuperação e modernização de infraestrutura de pesquisa em universidades e centros de pesquisa.",
+  "Co-financiamento para projetos de mobilidade e logística com foco em descarbonização.",
+  "Inserção de mestres e doutores em empresas privadas para projetos de P&D.",
+];
+
+/** Gera um índice estável a partir de uma string (sem aleatoriedade) */
+function stableIndex(str: string, mod: number): number {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash * 31 + str.charCodeAt(i)) & 0xfffffff;
+  }
+  return Math.abs(hash) % mod;
+}
+
+function enrichEdital(e: ApiEdital): EditalCardData {
+  const idx = stableIndex(e.id, 100);
+  const matchPercent = 20 + (idx % 75); // 20–94%
+
+  return {
+    id: e.id,
+    nome: e.nome,
+    orgao: e.orgao,
+    tipo: TIPOS[stableIndex(e.id + "tipo", TIPOS.length)],
+    status:
+      e.status === "aberto"
+        ? "aberto"
+        : e.status === "continuo"
+        ? "continuo"
+        : "fechado",
+    matchPercent,
+    valorMax: e.valorMax,
+    trl: TRLS[stableIndex(e.id + "trl", TRLS.length)],
+    dataFechamento: e.dataFechamento,
+    descricao: DESCRICOES[stableIndex(e.id + "desc", DESCRICOES.length)],
+  };
+}
+
+/* ── Página ────────────────────────────────────────── */
+
 export default function EditaisPage() {
-  const [editais, setEditais] = useState<Edital[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [editais, setEditais] = useState<EditalCardData[]>([]);
+  const [filtered, setFiltered] = useState<EditalCardData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-useEffect(() => {
-  fetch('/api/editais')
-    .then(res => {
-      if (!res.ok) throw new Error('Falha ao carregar editais');
-      return res.json();
-    })
-    .then(data => {
-      setEditais(data);
-      setLoading(false);
-    })
-    .catch(err => {
-      console.error(err);
-      setLoading(false);
-    });
-}, []);
+  useEffect(() => {
+    fetch("/api/editais")
+      .then((res) => {
+        if (!res.ok) throw new Error("Falha ao carregar editais");
+        return res.json();
+      })
+      .then((data: ApiEdital[]) => {
+        const enriched = data.map(enrichEdital);
+        setEditais(enriched);
+        setFiltered(enriched);
+      })
+      .catch((err) => console.error(err))
+      .finally(() => setIsLoading(false));
+  }, []);
 
-  if (loading) return <div className="p-8 text-center">Carregando editais...</div>;
+  function handleSearch(query: string, tag: string | null) {
+    let result = editais;
+
+    if (query.trim()) {
+      const q = query.toLowerCase();
+      result = result.filter(
+        (e) =>
+          e.nome.toLowerCase().includes(q) ||
+          e.orgao.toLowerCase().includes(q) ||
+          e.descricao.toLowerCase().includes(q)
+      );
+    }
+
+    if (tag) {
+      result = result.filter(
+        (e) => e.tipo.toLowerCase() === tag.toLowerCase()
+      );
+    }
+
+    setFiltered(result);
+  }
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white p-8">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-end mb-10">
-          <div>
-            <h1 className="text-5xl font-bold tracking-tight">Radar de Editais</h1>
-            <p className="text-xl text-zinc-400 mt-3">Editais abertos e quentes para inovação no Brasil</p>
-          </div>
-          <div className="text-sm text-zinc-500">Atualizado em 25/02/2026</div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {editais.map((edital) => (
-            <Link key={edital.id} href={`/editais/${edital.id}`}>
-              <div className="bg-zinc-900 border border-zinc-800 hover:border-violet-600 rounded-3xl p-8 transition-all group h-full flex flex-col">
-                <div className="flex justify-between mb-6">
-                  <Building2 className="text-violet-400" size={28} />
-                  <div className="text-xs px-4 py-1 bg-emerald-900/60 text-emerald-400 rounded-full font-medium">
-                    {edital.status === 'aberto' ? 'Aberto' : 'Fechado'}
-                  </div>
-                </div>
-
-                <h3 className="font-semibold text-2xl leading-tight mb-8 group-hover:text-violet-300 transition">
-                  {edital.nome}
-                </h3>
-
-                <div className="mt-auto space-y-4 text-sm">
-                  <div className="flex items-center justify-between">
-                    <div className="text-zinc-400 flex items-center gap-2">
-                      <Calendar size={16} /> Prazo
-                    </div>
-                    <div className="font-medium">{edital.dataFechamento ? new Date(edital.dataFechamento).toLocaleDateString('pt-BR') : '—'}</div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="text-zinc-400">Valor máximo</div>
-                    <div className="font-medium text-emerald-400">
-                      {edital.valorMax ? `R$ ${(edital.valorMax / 1_000_000).toFixed(0)} milhões` : '—'}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </Link>
-          ))}
-        </div>
+    <div className="flex flex-col h-full">
+      {/* Conteúdo principal */}
+      <div className="flex-1 overflow-y-auto p-4 md:p-8 pb-32">
+        <SearchHero onSearch={handleSearch} />
+        <EditalGrid editais={filtered} isLoading={isLoading} />
       </div>
     </div>
   );
