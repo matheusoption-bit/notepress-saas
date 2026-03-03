@@ -15,16 +15,18 @@
  */
 
 import { generateText } from 'ai';
-import { sonar, claude, gemini, gpt } from './perplexity-client';
+import { quadripartiteProviders } from './ai-providers';
 import { prisma } from '@/lib/prisma';
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
-export type AgentRole = 'ANALYST' | 'REVIEWER' | 'EXECUTOR' | 'ESPECIALISTA_BR';
+export type AgentRole = 'ANALYST' | 'REVIEWER' | 'EXECUTOR' | 'SYNTHESIS';
+
+export type QuadripartiteAgentType = 'GEMINI_SEARCH' | 'GEMINI_CREATE' | 'DEEPSEEK' | 'LLAMA' | 'WATSONX_BR';
 
 export interface AgentOutput {
   role: AgentRole;
-  agentType: 'GEMINI' | 'CLAUDE' | 'GPT' | 'ESPECIALISTA_BR';
+  agentType: QuadripartiteAgentType;
   content: string;
   tokenUsage?: { inputTokens: number; outputTokens: number };
 }
@@ -83,7 +85,7 @@ MISSÃO: Com base nas análises anteriores, estruturar:
 
 ESTILO: Objetivo, estruturado, prático. Use listas e tabelas markdown. Evite texto corrido.`,
 
-  ESPECIALISTA_BR: `Você é o Agente EspecialistaBR do Notepress Brain — especialista em regulamentação, marcos legais e contexto de inovação no Brasil, com acesso a informações em tempo real.
+  SYNTHESIS: `Você é o Agente EspecialistaBR do Notepress Brain — especialista em regulamentação, marcos legais e contexto de inovação no Brasil, com acesso a informações em tempo real.
 
 MISSÃO: Validar e contextualizar a proposta dentro do ecossistema brasileiro:
 - Marcos legais aplicáveis (Lei do Bem, Lei de Informática, LGPD, etc.)
@@ -97,7 +99,7 @@ ESTILO: Técnico e preciso sobre o contexto brasileiro. Cite sempre fontes e lin
 // ─── Helpers de memória ───────────────────────────────────────────────────────
 
 async function loadMemory(
-  agentType: 'GEMINI' | 'CLAUDE' | 'GPT' | 'ESPECIALISTA_BR',
+  agentType: QuadripartiteAgentType,
   userId: string,
   notebookId: string
 ): Promise<string> {
@@ -121,7 +123,7 @@ async function loadMemory(
 }
 
 async function saveMemory(
-  agentType: 'GEMINI' | 'CLAUDE' | 'GPT' | 'ESPECIALISTA_BR',
+  agentType: QuadripartiteAgentType,
   userId: string,
   notebookId: string,
   key: string,
@@ -138,7 +140,7 @@ async function saveMemory(
 
 interface RunAgentParams {
   role: AgentRole;
-  agentType: 'GEMINI' | 'CLAUDE' | 'GPT' | 'ESPECIALISTA_BR';
+  agentType: QuadripartiteAgentType;
   prompt: string;
   context: string; // outputs anteriores acumulados
   userId: string;
@@ -158,15 +160,8 @@ async function runAgent(params: RunAgentParams): Promise<AgentOutput> {
     .filter(Boolean)
     .join('\n\n');
 
-  // Seleciona o modelo correto por agente
-  const model =
-    agentType === 'GEMINI'
-      ? gemini('gemini-2.0-flash')
-      : agentType === 'CLAUDE'
-        ? claude('claude-3-5-sonnet-20241022')
-        : agentType === 'GPT'
-          ? gpt('gpt-4o-mini')
-          : sonar('sonar-pro'); // ESPECIALISTA_BR via Perplexity
+  // Seleciona o modelo correto por agente via quadripartiteProviders
+  const model = quadripartiteProviders[agentType];
 
   const { text, usage } = await generateText({
     model,
@@ -197,12 +192,12 @@ async function runAgent(params: RunAgentParams): Promise<AgentOutput> {
 
 const AGENT_SEQUENCE: Array<{
   role: AgentRole;
-  agentType: 'GEMINI' | 'CLAUDE' | 'GPT' | 'ESPECIALISTA_BR';
+  agentType: QuadripartiteAgentType;
 }> = [
-  { role: 'ANALYST', agentType: 'GEMINI' },
-  { role: 'REVIEWER', agentType: 'CLAUDE' },
-  { role: 'EXECUTOR', agentType: 'GPT' },
-  { role: 'ESPECIALISTA_BR', agentType: 'ESPECIALISTA_BR' },
+  { role: 'ANALYST',        agentType: 'GEMINI_SEARCH' }, // Auditor Web — pesquisa em tempo real
+  { role: 'REVIEWER',       agentType: 'DEEPSEEK' },       // Analista Quantitativo — revisão crítica
+  { role: 'EXECUTOR',       agentType: 'LLAMA' },           // Revisor Ultra-Rápido — estruturação
+  { role: 'SYNTHESIS', agentType: 'WATSONX_BR' },    // Árbitro de Compliance BR
 ];
 
 /**
@@ -263,9 +258,9 @@ export async function runBrain(input: BrainRunInput): Promise<BrainRunOutput> {
       });
     }
 
-    // Síntese final usando Sonar (barato e rápido)
+    // Síntese final usando Llama via Groq (ultra-rápido e barato)
     const { text: synthesis } = await generateText({
-      model: sonar('llama-3.1-sonar-small-128k-online'),
+      model: quadripartiteProviders.LLAMA,
       system:
         'Você é um sintetizador de informações. Crie um resumo executivo em português, ' +
         'com no máximo 3 parágrafos, integrando os pontos mais importantes de todos os agentes. ' +

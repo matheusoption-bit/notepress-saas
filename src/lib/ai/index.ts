@@ -7,6 +7,8 @@
  *   import { runBrain, validateInnovation, enrichEdital } from '@/lib/ai'
  */
 
+export { quadripartiteProviders, validateEnvProviders } from './ai-providers';
+
 // ─── Providers e modelos ──────────────────────────────────────────────────────
 export {
   perplexityProvider,

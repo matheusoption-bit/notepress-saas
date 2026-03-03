@@ -149,10 +149,11 @@ enum WritingProfile {
 }
 
 enum AgentType {
-  GEMINI
-  CLAUDE
-  GPT
-  ESPECIALISTA_BR
+  GEMINI_SEARCH  // Google Gemini + Search Grounding — Auditor Web
+  GEMINI_CREATE  // Google Gemini puro — Pesquisador Criativo
+  DEEPSEEK       // DeepSeek — Analista Quantitativo
+  LLAMA          // Groq/Llama — Revisor Ultra-Rápido
+  WATSONX_BR     // IBM WatsonX — Árbitro de Compliance BR
 }
 
 enum DebateMode {

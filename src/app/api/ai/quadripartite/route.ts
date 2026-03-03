@@ -1,57 +1,45 @@
 /**
  * POST /api/ai/quadripartite
  *
- * Cérebro Quadripartite — 4 agentes de IA debatem em 3 rodadas progressivas.
+ * Cérebro Quadripartite — 5 agentes de IA debatem em 3 rodadas progressivas.
  *
- * ┌─────────────────────────────────────────────────────────────────┐
- * │  MODO DESENVOLVIMENTO — todos os agentes usam Perplexity Sonar  │
- * │  $10/mês ≈ 500–700 debates completos (12 chamadas × ~15k tokens)│
- * │  Rate limit Perplexity: 20 req/min                              │
- * └─────────────────────────────────────────────────────────────────┘
- *
- * PRODUÇÃO: substituir providers por:
- *   GEMINI       → google('gemini-2.0-flash-exp')
- *   CLAUDE       → anthropic('claude-3-7-sonnet-20250219')
- *   GPT          → openai('gpt-4o')
- *   ESPECIALISTA_BR → openai('gpt-4o-mini')
+ * Stack:
+ *   GEMINI_SEARCH  → Google Gemini 2.5 Flash + Search Grounding (Auditor Web)
+ *   GEMINI_CREATE  → Google Gemini 2.5 Flash puro (Pesquisador Criativo)
+ *   DEEPSEEK       → DeepSeek Chat (Analista Quantitativo)
+ *   LLAMA          → Groq / Llama 3.3 70B (Revisor Ultra-Rápido)
+ *   WATSONX_BR     → IBM Granite 3.8B (Árbitro de Compliance BR)
  */
 
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { createOpenAI } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
+import { quadripartiteProviders } from '@/lib/ai-providers';
 import { DebateMode, AgentType } from '@prisma/client';
 
 // ─── Configuração do Next.js ──────────────────────────────────────────────────
 
 export const maxDuration = 45; // segundos — timeout da rota
 
-// ─── Provider Perplexity (modo DEV) ──────────────────────────────────────────
+// ─── Modelos por agente ───────────────────────────────────────────────────────
 
-const perplexity = createOpenAI({
-  name: 'perplexity',
-  apiKey: process.env.PERPLEXITY_API_KEY ?? '',
-  baseURL: 'https://api.perplexity.ai',
-});
-
-// PRODUÇÃO: substituir cada entrada pelo provider real do agente
-const DEV_MODEL = 'llama-3.1-sonar-small-128k-online' as const;
-
-const AGENT_MODELS = {
-  GEMINI: perplexity(DEV_MODEL),        // PROD: google('gemini-2.0-flash-exp')
-  CLAUDE: perplexity(DEV_MODEL),        // PROD: anthropic('claude-3-7-sonnet-20250219')
-  GPT: perplexity(DEV_MODEL),           // PROD: openai('gpt-4o')
-  ESPECIALISTA_BR: perplexity(DEV_MODEL), // PROD: openai('gpt-4o-mini')
-} as const;
+const AGENT_MODELS: Record<AgentType, import('ai').LanguageModel> = {
+  GEMINI_SEARCH: quadripartiteProviders.GEMINI_SEARCH,
+  GEMINI_CREATE: quadripartiteProviders.GEMINI_CREATE,
+  DEEPSEEK:      quadripartiteProviders.DEEPSEEK,
+  LLAMA:         quadripartiteProviders.LLAMA,
+  WATSONX_BR:    quadripartiteProviders.WATSONX_BR,
+};
 
 // Temperaturas diferentes por agente (personalidade)
 const AGENT_TEMPERATURES: Record<AgentType, number> = {
-  GEMINI: 0.7,         // criativo, exploratório
-  CLAUDE: 0.3,         // rigoroso, auditor
-  GPT: 0.5,            // equilibrado, quantitativo
-  ESPECIALISTA_BR: 0.2, // determinístico, normativo
+  GEMINI_SEARCH: 0.3,  // preciso — busca e auditoria web
+  GEMINI_CREATE: 0.7,  // criativo — pesquisa e conexões interdisciplinares
+  DEEPSEEK:      0.5,  // equilibrado — análise quantitativa
+  LLAMA:         0.5,  // rápido — revisão e estruturação
+  WATSONX_BR:    0.2,  // determinístico — compliance normativo
 };
 
 // ─── System prompts por agente e por modo ────────────────────────────────────
@@ -71,25 +59,31 @@ function buildSystemPrompt(agent: AgentType, mode: DebateMode): string {
   const base = modeContext[mode];
 
   const personas: Record<AgentType, string> = {
-    GEMINI: `Você é o Agente GEMINI — pesquisador criativo e técnico em inovação brasileira.
-Seu papel: explorar oportunidades, conexões interdisciplinares e potenciais tecnológicos.
-Foque em TRL, impacto científico e diferencial competitivo.
+    GEMINI_SEARCH: `Você é o Agente GEMINI_SEARCH — auditor web especializado em pesquisa em tempo real sobre inovação brasileira.
+Seu papel: buscar evidências, dados atualizados e referências externas para fundamentar a análise.
+Foque em: editais abertos, publicações recentes, empresas e projetos análogos, dados públicos.
 ${base}
 Responda em português, de forma estruturada, com no máximo 400 palavras.`,
 
-    CLAUDE: `Você é o Agente CLAUDE — auditor rigoroso de propostas de fomento à inovação.
-Seu papel: identificar inconsistências, riscos, lacunas técnicas e vulnerabilidades da proposta.
-Seja preciso e aponte especificamente o que está faltando ou pode ser rejeitado por avaliadores.
+    GEMINI_CREATE: `Você é o Agente GEMINI_CREATE — pesquisador criativo e técnico em inovação.
+Seu papel: explorar oportunidades, conexões interdisciplinares e potenciais tecnológicos ainda inexplorados.
+Foque em: TRL, impacto científico, diferencial competitivo e hipóteses inovadoras.
 ${base}
 Responda em português, de forma estruturada, com no máximo 400 palavras.`,
 
-    GPT: `Você é o Agente GPT — analista quantitativo e financeiro de editais de inovação.
+    DEEPSEEK: `Você é o Agente DEEPSEEK — analista quantitativo e financeiro de editais de inovação.
 Seu papel: avaliar viabilidade econômica, custos, retorno sobre investimento e indicadores numéricos.
 Sempre que possível, apresente estimativas, percentuais e métricas concretas.
 ${base}
 Responda em português, de forma estruturada, com no máximo 400 palavras.`,
 
-    ESPECIALISTA_BR: `Você é o Agente Especialista BR — máxima autoridade em editais e regulamentação brasileira.
+    LLAMA: `Você é o Agente LLAMA — revisor ultra-rápido e crítico de propostas de fomento.
+Seu papel: identificar inconsistências, riscos, lacunas técnicas e vulnerabilidades em alta velocidade.
+Seja preciso e aponte especificamente o que pode ser rejeitado por avaliadores.
+${base}
+Responda em português, de forma estruturada, com no máximo 400 palavras.`,
+
+    WATSONX_BR: `Você é o Agente WATSONX_BR — máxima autoridade em editais e regulamentação brasileira.
 Regras fixas que SEMPRE aplica:
 • TRL conforme classificação MCTI (1 a 9)
 • Normas FINEP, FAPESP, CNPq, EMBRAPII e BNDES
@@ -263,7 +257,7 @@ export async function POST(req: Request) {
     },
   });
 
-  const agents: AgentType[] = ['GEMINI', 'CLAUDE', 'GPT', 'ESPECIALISTA_BR'];
+  const agents: AgentType[] = ['GEMINI_SEARCH', 'GEMINI_CREATE', 'DEEPSEEK', 'LLAMA', 'WATSONX_BR'];
 
   // System prompts (estáticos por rodada neste modo)
   const systemPrompts = Object.fromEntries(
@@ -377,11 +371,11 @@ export async function POST(req: Request) {
     .map((m) => `### ${m.agentType}\n${m.content}`)
     .join('\n\n---\n\n');
 
-  // Usa o modelo mais econômico para gerar o consenso
+  // Usa o Llama via Groq para gerar o consenso (ultra-rápido e econômico)
   let consensus = '';
   try {
     const { text } = await generateText({
-      model: perplexity(DEV_MODEL),
+      model: quadripartiteProviders.LLAMA,
       system:
         'Você é um sintetizador de debates multidisciplinares. ' +
         'Crie um CONSENSO FINAL em português: resumo executivo com os pontos de acordo, ' +
@@ -418,10 +412,9 @@ export async function POST(req: Request) {
         3: round3Messages,
       },
       meta: {
-        model: DEV_MODEL,
-        environment: 'development',
+        agents: ['GEMINI_SEARCH', 'GEMINI_CREATE', 'DEEPSEEK', 'LLAMA', 'WATSONX_BR'],
+        stack: 'Google Gemini + DeepSeek + Groq/Llama + IBM WatsonX',
         rateLimitRemaining: remaining - 1,
-        note: 'Em produção, cada agente usará seu provider próprio (Gemini, Claude, GPT, OpenAI).',
       },
     },
     {
