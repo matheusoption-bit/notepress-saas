@@ -24,6 +24,7 @@ import { $createCostTableNode, INSERT_COST_TABLE_COMMAND }                from '
 import { $createBrainstormNode, INSERT_BRAINSTORM_COMMAND }               from './nodes/BrainstormNode';
 import { $createMermaidDiagramNode, INSERT_MERMAID_COMMAND }              from './nodes/MermaidDiagramNode';
 import { $createDebateConsensusNode, INSERT_DEBATE_CONSENSUS_COMMAND }    from './nodes/DebateConsensusNode';
+import { $createInnovationValidatorNode, INSERT_INNOVATION_VALIDATOR_COMMAND } from './nodes/InnovationValidatorNode';
 
 // ── Utilitário: insere nó de bloco na posição atual ────────────
 type AnyWidgetNode = ReturnType<
@@ -33,6 +34,7 @@ type AnyWidgetNode = ReturnType<
   | typeof $createBrainstormNode
   | typeof $createMermaidDiagramNode
   | typeof $createDebateConsensusNode
+  | typeof $createInnovationValidatorNode
 >;
 function insertBlock(editor: ReturnType<typeof useLexicalComposerContext>[0], node: AnyWidgetNode) {
   editor.update(() => {
@@ -118,6 +120,17 @@ export default function WidgetInsertPlugin() {
         INSERT_DEBATE_CONSENSUS_COMMAND,
         (payload) => {
           const node = $createDebateConsensusNode(payload ?? {});
+          insertBlock(editor, node);
+          return true;
+        },
+        COMMAND_PRIORITY_NORMAL,
+      ),
+
+      // ── Innovation Validator ───────────────────────────────
+      editor.registerCommand(
+        INSERT_INNOVATION_VALIDATOR_COMMAND,
+        (payload) => {
+          const node = $createInnovationValidatorNode(payload ?? {});
           insertBlock(editor, node);
           return true;
         },

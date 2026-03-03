@@ -44,6 +44,7 @@ import {
   Mic,
   GitBranch,
   BrainCircuit,
+  Zap,
 } from 'lucide-react';
 import { $createHorizontalRuleNode } from '@lexical/react/LexicalHorizontalRuleNode';
 import {
@@ -53,6 +54,7 @@ import {
   INSERT_BRAINSTORM_COMMAND,
   INSERT_MERMAID_COMMAND,
   INSERT_DEBATE_CONSENSUS_COMMAND,
+  INSERT_INNOVATION_VALIDATOR_COMMAND,
 } from './CustomNodes';
 
 // ── Definição dos itens do menu ────────────────────────────────
@@ -271,6 +273,16 @@ const SLASH_COMMANDS: SlashCommandDef[] = [
         confidence: 0,
         roundId: '',
       });
+    },
+  },
+  {
+    key: 'validar',
+    label: 'Validador de Inovação',
+    description: 'Score 0–100 com busca de patentes Lens.org e SerpApi',
+    icon: <Zap size={16} className="text-emerald-400" />,
+    keywords: ['validar', 'inovacao', 'patente', 'score', 'lens', 'radical', 'disruptiva', 'incremental'],
+    onSelect: (editor) => {
+      editor.dispatchCommand(INSERT_INNOVATION_VALIDATOR_COMMAND, { isLoading: false });
     },
   },
 ];
