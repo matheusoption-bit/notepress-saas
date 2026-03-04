@@ -1,129 +1,319 @@
 'use client';
 
-import { Check, Star } from 'lucide-react';
-import Link from 'next/link';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import {
+  Check,
+  X,
+  Zap,
+  Users,
+  Sparkles,
+  Lock,
+  FileText,
+  Search,
+  MessageSquare,
+  BookOpen,
+  FlaskConical,
+} from 'lucide-react';
 
-const plans = [
+// ── Planos ────────────────────────────────────────────────────────────────────
+// Defina os priceIds reais do Stripe no dashboard e os substitua abaixo.
+const PRICE_IDS = {
+  pro:  process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO  ?? 'price_pro_placeholder',
+  team: process.env.NEXT_PUBLIC_STRIPE_PRICE_TEAM ?? 'price_team_placeholder',
+} as const;
+
+interface Feature {
+  text: string;
+  included: boolean;
+  icon?: React.ReactNode;
+}
+
+interface Plan {
+  id: string;
+  name: string;
+  badge?: string;
+  price: string;
+  period: string;
+  description: string;
+  priceId: string | null;
+  cta: string;
+  popular: boolean;
+  accentFrom: string;
+  accentTo: string;
+  borderColor: string;
+  glowColor: string;
+  features: Feature[];
+}
+
+const plans: Plan[] = [
   {
-    name: "Spark",
-    price: "0",
-    period: "/mês",
-    description: "Comece a experimentar",
-    features: [
-      "3 notebooks",
-      "Radar básico de editais",
-      "Gemini Flash",
-      "Suporte comunitário"
-    ],
-    buttonText: "Começar grátis",
+    id: 'free',
+    name: 'Gratuito',
+    price: 'R$ 0',
+    period: '',
+    description: 'Explore o Notepress sem compromisso.',
+    priceId: null,
+    cta: 'Começar grátis',
     popular: false,
-    color: "zinc"
+    accentFrom: 'from-zinc-500',
+    accentTo: 'to-zinc-600',
+    borderColor: 'border-zinc-700/60',
+    glowColor: '',
+    features: [
+      { text: '3 notebooks', included: true,  icon: <BookOpen size={14} /> },
+      { text: '5 debates por mês', included: true,  icon: <MessageSquare size={14} /> },
+      { text: 'Radar de editais', included: true,  icon: <Search size={14} /> },
+      { text: 'Exportação PDF', included: false },
+      { text: 'Pesquisa de patentes (Lens.org)', included: false },
+      { text: 'Colaboração em tempo real', included: false },
+      { text: 'API access', included: false },
+    ],
   },
   {
-    name: "NoteTese",
-    price: "49",
-    period: "/mês",
-    description: "Ideal para pesquisadores",
-    features: [
-      "Notebooks ilimitados",
-      "Humanização anti-IA",
-      "Risco 5 Pilares",
-      "Recomendador básico",
-      "Export PDF ilimitado"
-    ],
-    buttonText: "Assinar NoteTese",
-    popular: false,
-    color: "violet"
-  },
-  {
-    name: "Notepress",
-    price: "79",
-    period: "/mês",
-    description: "Para quem quer resultados",
-    features: [
-      "Tudo do NoteTese",
-      "Recomendador turbo",
-      "LOI automática",
-      "Notepress Cast (áudio)",
-      "Prioridade no suporte"
-    ],
-    buttonText: "Assinar Notepress",
+    id: 'pro',
+    name: 'Pro',
+    badge: 'Mais Popular',
+    price: 'R$ 97',
+    period: '/mês',
+    description: 'Tudo que você precisa para vencer editais sozinho.',
+    priceId: PRICE_IDS.pro,
+    cta: 'Assinar Pro',
     popular: true,
-    color: "violet"
+    accentFrom: 'from-violet-600',
+    accentTo: 'to-indigo-600',
+    borderColor: 'border-violet-500/70',
+    glowColor: 'shadow-[0_0_48px_-8px_rgba(124,58,237,0.55)]',
+    features: [
+      { text: 'Notebooks ilimitados', included: true,  icon: <BookOpen size={14} /> },
+      { text: 'Debates ilimitados', included: true,  icon: <MessageSquare size={14} /> },
+      { text: 'Radar de editais', included: true,  icon: <Search size={14} /> },
+      { text: 'Exportação PDF', included: true,  icon: <FileText size={14} /> },
+      { text: 'Pesquisa de patentes (Lens.org)', included: true,  icon: <FlaskConical size={14} /> },
+      { text: 'Colaboração em tempo real', included: false },
+      { text: 'API access', included: false },
+    ],
   },
   {
-    name: "Forge",
-    price: "199",
-    period: "/usuário/mês",
-    description: "Para equipes e instituições",
-    features: [
-      "Tudo do Notepress",
-      "Colaboração em tempo real",
-      "Admin central",
-      "SSO + Custom branding",
-      "Relatórios institucionais"
-    ],
-    buttonText: "Assinar Forge",
+    id: 'team',
+    name: 'Team',
+    price: 'R$ 297',
+    period: '/mês',
+    description: 'Para equipes que operam em alta velocidade.',
+    priceId: PRICE_IDS.team,
+    cta: 'Assinar Team',
     popular: false,
-    color: "emerald"
-  }
+    accentFrom: 'from-emerald-500',
+    accentTo: 'to-teal-600',
+    borderColor: 'border-emerald-500/50',
+    glowColor: 'shadow-[0_0_40px_-10px_rgba(16,185,129,0.4)]',
+    features: [
+      { text: 'Notebooks ilimitados', included: true,  icon: <BookOpen size={14} /> },
+      { text: 'Debates ilimitados', included: true,  icon: <MessageSquare size={14} /> },
+      { text: 'Radar de editais', included: true,  icon: <Search size={14} /> },
+      { text: 'Exportação PDF', included: true,  icon: <FileText size={14} /> },
+      { text: 'Pesquisa de patentes (Lens.org)', included: true,  icon: <FlaskConical size={14} /> },
+      { text: 'Colaboração Y.js (5 membros)', included: true,  icon: <Users size={14} /> },
+      { text: 'API access', included: true,  icon: <Lock size={14} /> },
+    ],
+  },
 ];
 
+// ── Componente do card ────────────────────────────────────────────────────────
+function PlanCard({ plan }: { plan: Plan }) {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubscribe() {
+    if (!plan.priceId) {
+      router.push('/dashboard');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const res = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ priceId: plan.priceId }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error ?? 'Erro ao iniciar checkout');
+      }
+
+      const { url } = await res.json();
+      if (url) window.location.href = url;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Tente novamente.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div
+      className={`
+        relative flex flex-col rounded-3xl p-8
+        backdrop-blur-xl bg-white/4 border
+        transition-transform duration-300 hover:-translate-y-1
+        ${plan.borderColor}
+        ${plan.glowColor}
+        ${plan.popular ? 'scale-[1.04] z-10' : ''}
+      `}
+    >
+      {/* Badge "Mais Popular" */}
+      {plan.badge && (
+        <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+          <span
+            className={`
+              inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold
+              bg-gradient-to-r ${plan.accentFrom} ${plan.accentTo} text-white
+              shadow-lg shadow-violet-900/40
+            `}
+          >
+            <Sparkles size={11} />
+            {plan.badge}
+          </span>
+        </div>
+      )}
+
+      {/* Cabeçalho */}
+      <div className="mb-6 pt-2">
+        <h3 className="text-xl font-bold text-white tracking-tight">{plan.name}</h3>
+        <p className="text-sm text-zinc-400 mt-1 leading-snug">{plan.description}</p>
+      </div>
+
+      {/* Preço */}
+      <div className="mb-8 flex items-end gap-1">
+        <span className="text-5xl font-extrabold text-white leading-none">
+          {plan.price}
+        </span>
+        {plan.period && (
+          <span className="text-zinc-400 text-sm pb-1">{plan.period}</span>
+        )}
+      </div>
+
+      {/* Divisor com gradiente */}
+      <div
+        className={`h-px mb-7 bg-gradient-to-r ${plan.accentFrom} ${plan.accentTo} opacity-40`}
+      />
+
+      {/* Features */}
+      <ul className="space-y-3.5 flex-1 mb-8">
+        {plan.features.map((feat, i) => (
+          <li key={i} className="flex items-start gap-3 text-sm">
+            {feat.included ? (
+              <span
+                className={`
+                  mt-0.5 shrink-0 rounded-full p-0.5
+                  bg-gradient-to-br ${plan.accentFrom} ${plan.accentTo} text-white
+                `}
+              >
+                <Check size={11} strokeWidth={3} />
+              </span>
+            ) : (
+              <span className="mt-0.5 shrink-0 text-zinc-600">
+                <X size={13} strokeWidth={2} />
+              </span>
+            )}
+            <span className={feat.included ? 'text-zinc-200' : 'text-zinc-600 line-through'}>
+              {feat.text}
+            </span>
+          </li>
+        ))}
+      </ul>
+
+      {/* Erro inline */}
+      {error && (
+        <p className="text-xs text-red-400 text-center mb-3">{error}</p>
+      )}
+
+      {/* Botão CTA */}
+      <button
+        onClick={handleSubscribe}
+        disabled={loading}
+        className={`
+          w-full py-3.5 rounded-2xl font-semibold text-sm tracking-wide
+          transition-all duration-200 cursor-pointer
+          disabled:opacity-50 disabled:cursor-not-allowed
+          ${plan.popular
+            ? `bg-gradient-to-r ${plan.accentFrom} ${plan.accentTo} text-white hover:brightness-110 shadow-lg shadow-violet-900/30`
+            : plan.id === 'team'
+              ? `bg-gradient-to-r ${plan.accentFrom} ${plan.accentTo} text-white hover:brightness-110 shadow-lg shadow-emerald-900/30`
+              : 'bg-white/8 hover:bg-white/14 text-white border border-white/10'
+          }
+        `}
+      >
+        {loading ? (
+          <span className="flex items-center justify-center gap-2">
+            <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" className="opacity-25" />
+              <path d="M4 12a8 8 0 018-8V0C5.4 0 0 5.4 0 12h4z" fill="currentColor" className="opacity-75" />
+            </svg>
+            Redirecionando…
+          </span>
+        ) : (
+          <span className="flex items-center justify-center gap-2">
+            {plan.id !== 'free' && <Zap size={14} />}
+            {plan.cta}
+          </span>
+        )}
+      </button>
+    </div>
+  );
+}
+
+// ── Página ────────────────────────────────────────────────────────────────────
 export default function PricingPage() {
   return (
-    <div className="min-h-screen bg-zinc-950 text-white py-20">
-      <div className="max-w-6xl mx-auto px-6">
-        <div className="text-center mb-16">
-          <h1 className="text-5xl font-bold mb-4">Escolha seu plano</h1>
-          <p className="text-2xl text-zinc-400">Transforme suas ideias em aprovações. Escolha o plano ideal.</p>
+    <div className="relative min-h-screen overflow-hidden bg-zinc-950 text-white">
+      {/* Blobs decorativos de fundo */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 w-[900px] h-[500px]
+          bg-gradient-to-r from-violet-700/20 via-indigo-700/15 to-transparent
+          rounded-full blur-[120px]"
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute bottom-0 right-0 w-[600px] h-[400px]
+          bg-emerald-700/10 rounded-full blur-[100px]"
+      />
+
+      <div className="relative z-10 max-w-5xl mx-auto px-6 py-24">
+        {/* Hero */}
+        <div className="text-center mb-20">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold
+            bg-violet-500/15 text-violet-300 border border-violet-500/25 mb-5">
+            <Sparkles size={11} />
+            Planos e preços
+          </span>
+          <h1 className="text-5xl md:text-6xl font-extrabold tracking-tight bg-gradient-to-br
+            from-white to-zinc-400 bg-clip-text text-transparent leading-tight mb-5">
+            Invista no seu próximo<br className="hidden sm:block" /> projeto aprovado
+          </h1>
+          <p className="text-zinc-400 text-lg max-w-xl mx-auto leading-relaxed">
+            Do primeiro rascunho à aprovação final. Escolha o plano que acompanha o seu ritmo.
+          </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {plans.map((plan, index) => (
-            <div
-              key={index}
-              className={`relative bg-zinc-900 rounded-3xl p-8 flex flex-col h-full border ${plan.popular ? 'border-violet-500 scale-105' : 'border-zinc-800'}`}
-            >
-              {plan.popular && (
-                <div className="absolute -top-3 right-6 bg-violet-600 text-white text-xs font-bold px-4 py-1 rounded-full">
-                  MAIS POPULAR
-                </div>
-              )}
-
-              <div className="mb-8">
-                <h3 className="text-2xl font-bold mb-1">{plan.name}</h3>
-                <p className="text-zinc-400 text-sm">{plan.description}</p>
-              </div>
-
-              <div className="mb-8">
-                <span className="text-5xl font-bold">R$ {plan.price}</span>
-                <span className="text-zinc-400">{plan.period}</span>
-              </div>
-
-              <ul className="space-y-4 mb-10 flex-1">
-                {plan.features.map((feature, i) => (
-                  <li key={i} className="flex items-start gap-3 text-sm">
-                    <Check className="text-emerald-400 mt-1" size={18} />
-                    <span>{feature}</span>
-                  </li>
-                ))}
-              </ul>
-
-              <Link
-                href={plan.name === "Spark" ? "/dashboard" : "#"}
-                className={`w-full py-4 rounded-2xl text-center font-semibold transition ${plan.popular 
-                  ? 'bg-violet-600 hover:bg-violet-700 text-white' 
-                  : 'bg-zinc-800 hover:bg-zinc-700 text-white'}`}
-              >
-                {plan.buttonText}
-              </Link>
-            </div>
+        {/* Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
+          {plans.map((plan) => (
+            <PlanCard key={plan.id} plan={plan} />
           ))}
         </div>
 
-        <div className="text-center text-zinc-500 text-sm mt-12">
-          Cancelamento a qualquer momento • 7 dias de teste grátis nos planos pagos
-        </div>
+        {/* Rodapé */}
+        <p className="text-center text-zinc-600 text-sm mt-14">
+          Cancele a qualquer momento &mdash; sem multas, sem burocracia.
+          Nos planos pagos, você tem 7 dias de teste grátis.
+        </p>
       </div>
     </div>
   );
