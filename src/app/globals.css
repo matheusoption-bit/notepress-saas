@@ -771,6 +771,60 @@ body {
 }
 
 /* ============================================================
+   Lexical — Indicador de Auto-save
+   Exibido no rodapé do lexical-paper, não intrusivo
+   ============================================================ */
+
+.lexical-save-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  position: absolute;
+  bottom: 10px;
+  right: 16px;
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  pointer-events: none;
+  user-select: none;
+  transition: opacity 0.3s ease, color 0.3s ease;
+  opacity: 0.65;
+  color: var(--color-text-muted, #71717a);
+}
+
+.lexical-save-status--saving {
+  color: var(--color-text-muted, #71717a);
+}
+
+.lexical-save-status--saved {
+  color: #4ade80; /* green-400 */
+  opacity: 0.75;
+}
+
+.lexical-save-status--error {
+  color: #f87171; /* red-400 */
+  opacity: 0.85;
+}
+
+/* Spinner animado apenas no estado "saving" */
+.lexical-save-status__spinner {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border: 1.5px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: lexical-spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes lexical-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ============================================================
    Lexical — Tabelas de Editais
    Bordas seguem o token --color-border-default
    ============================================================ */
