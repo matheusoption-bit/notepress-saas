@@ -25,6 +25,20 @@ import { createAnthropic } from '@ai-sdk/anthropic';
 import { watsonxGranite } from './watsonx-client';
 import type { LanguageModel } from 'ai';
 
+// ─── Env canonicalization ─────────────────────────────────────────────────────
+// ADR-0001:
+// Canonical key => OPENAI_API_KEY
+// Temporary compatibility => AI_OPENAI_KEY (legacy)
+export function getOpenAiApiKey(): string {
+  return process.env.OPENAI_API_KEY ?? process.env.AI_OPENAI_KEY ?? '';
+}
+
+export function getOpenAiApiKeySource(): 'OPENAI_API_KEY' | 'AI_OPENAI_KEY' | null {
+  if (process.env.OPENAI_API_KEY) return 'OPENAI_API_KEY';
+  if (process.env.AI_OPENAI_KEY) return 'AI_OPENAI_KEY';
+  return null;
+}
+
 // ─── Retry helper ──────────────────────────────────────────────────────────────
 // Usado pelo perplexityProvider para tratar 429 / 5xx com backoff exponencial.
 
@@ -117,7 +131,7 @@ export const anthropicProvider = createAnthropic({
 // Obter key: https://platform.openai.com/api-keys
 export const openaiProvider = createOpenAI({
   name: 'openai',
-  apiKey: process.env.AI_OPENAI_KEY ?? '',
+  apiKey: getOpenAiApiKey(),
 });
 
 // ─── Agentes do Cérebro Quadripartite ─────────────────────────────────────────
