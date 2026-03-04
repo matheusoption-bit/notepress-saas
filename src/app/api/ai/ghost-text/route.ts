@@ -76,7 +76,7 @@ export async function POST(req: Request) {
       model: groqProvider('llama-3.3-70b-versatile'),
       system: systemPrompt,
       prompt: context,
-      maxTokens: 120,
+      maxOutputTokens: 120,
       temperature: 0.4,
     });
 
