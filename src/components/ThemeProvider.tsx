@@ -1,17 +1,16 @@
 "use client";
 
 import { ThemeProvider as NextThemesProvider } from "next-themes";
+import { WeatherProvider } from "@/components/atmosphere/WeatherProvider";
+import { FocusModeProvider } from "@/components/focus/FocusModeProvider";
 
 interface Props {
   children: React.ReactNode;
 }
 
 /**
- * Wrapper sobre next-themes.
- * - attribute="class"  → aplica `.dark` no <html>
- * - defaultTheme="dark" → começa em dark (Firebase Studio)
- * - enableSystem → respeita preferência do SO
- * - disableTransitionOnChange → evita flash durante troca
+ * Unified provider stack for Notepress.
+ * Wraps: next-themes → WeatherProvider → FocusModeProvider
  */
 export function ThemeProvider({ children }: Props) {
   return (
@@ -21,7 +20,9 @@ export function ThemeProvider({ children }: Props) {
       enableSystem
       disableTransitionOnChange
     >
-      {children}
+      <WeatherProvider>
+        <FocusModeProvider>{children}</FocusModeProvider>
+      </WeatherProvider>
     </NextThemesProvider>
   );
 }

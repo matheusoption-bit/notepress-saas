@@ -1,10 +1,13 @@
 "use client";
 
 import { useUser } from "@clerk/nextjs";
+import { motion, type Variants } from "framer-motion";
 import { StatsCards } from "@/components/dashboard/StatsCards";
 import { QuickActions } from "@/components/dashboard/QuickActions";
 import { HotEditais } from "@/components/dashboard/HotEditais";
 import { RecentNotebooks } from "@/components/dashboard/RecentNotebooks";
+import { SpotifyWidget } from "@/components/spotify/SpotifyWidget";
+import { useWeather } from "@/components/atmosphere/WeatherProvider";
 
 function getGreeting(): string {
   const h = new Date().getHours();
@@ -13,45 +16,65 @@ function getGreeting(): string {
   return "Boa noite";
 }
 
+const stagger: Variants = {
+  hidden: {},
+  show: {
+    transition: { staggerChildren: 0.08 },
+  },
+};
+
+const fadeUp: Variants = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.25, 0.1, 0.25, 1] } },
+};
+
 export default function DashboardPage() {
   const { user } = useUser();
+  const { weather } = useWeather();
   const firstName = user?.firstName ?? user?.username ?? "usuário";
 
   return (
-    <div className="px-8 pb-12 pt-8 max-w-[1400px] mx-auto space-y-10">
+    <motion.div
+      className="pb-12 pt-4 max-w-[1400px] mx-auto space-y-10"
+      variants={stagger}
+      initial="hidden"
+      animate="show"
+    >
+      {/* Greeting */}
+      <motion.section variants={fadeUp} className="relative">
+        <div className="absolute -left-20 -top-20 h-64 w-64 rounded-full bg-indigo-500/10 blur-[100px] pointer-events-none" />
+        <div className="absolute right-0 -top-10 h-48 w-48 rounded-full bg-violet-500/8 blur-[80px] pointer-events-none" />
 
-      {/* Saudação */}
-      <section className="relative">
-        <div className="absolute -left-20 -top-20 h-64 w-64 rounded-full bg-violet-600/20 blur-[80px] pointer-events-none" />
-        <h1 className="relative text-5xl md:text-6xl font-black tracking-tight text-white mb-2">
+        <h1 className="relative text-4xl md:text-5xl font-bold tracking-tight text-[--color-text-primary] mb-2">
           {getGreeting()},{" "}
-          <span className="bg-gradient-to-r from-white to-zinc-500 bg-clip-text text-transparent">
-            {firstName}
-          </span>{" "}
-          👋
+          <span className="text-gradient-primary">{firstName}</span>
         </h1>
-        <p className="text-zinc-400 text-lg">
-          Aqui está o resumo das suas oportunidades hoje.
+        <p className="text-[--color-text-secondary] text-lg">
+          {weather
+            ? `${weather.temperature}°C em ${weather.city} — ${weather.description.toLowerCase()}`
+            : "Aqui está o resumo das suas oportunidades hoje."}
         </p>
-      </section>
+      </motion.section>
 
-      {/* Cards de métricas */}
-      <StatsCards />
+      {/* Stats */}
+      <motion.div variants={fadeUp}>
+        <StatsCards />
+      </motion.div>
 
-      {/* Conteúdo principal */}
+      {/* Main grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Coluna esquerda — ações + editais */}
-        <div className="lg:col-span-2 space-y-8">
+        {/* Left — actions + editais */}
+        <motion.div variants={fadeUp} className="lg:col-span-2 space-y-8">
           <QuickActions />
           <HotEditais />
-        </div>
+        </motion.div>
 
-        {/* Coluna direita — notebooks */}
-        <div>
+        {/* Right — notebooks + spotify */}
+        <motion.div variants={fadeUp} className="space-y-8">
           <RecentNotebooks />
-        </div>
+          <SpotifyWidget />
+        </motion.div>
       </div>
-
-    </div>
+    </motion.div>
   );
 }

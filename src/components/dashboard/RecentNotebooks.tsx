@@ -1,137 +1,84 @@
-/* ─── RecentNotebooks.tsx ───────────────────────────── */
+"use client";
 
-type Status =
-  | { type: "done" }
-  | { type: "progress"; percent: number; ringColor: string; textColor: string };
+import Link from "next/link";
+import { motion } from "framer-motion";
+import { BookOpen, Clock, ArrowUpRight } from "lucide-react";
 
 interface Notebook {
-  icon: string;
-  iconColor: string;
-  hoverBorder: string;
+  id: string;
   title: string;
-  subtitle: string;
-  status: Status;
+  updatedAt: string;
+  noteCount: number;
 }
 
-const NOTEBOOKS: Notebook[] = [
+const MOCK_NOTEBOOKS: Notebook[] = [
   {
-    icon: "folder",
-    iconColor: "text-blue-400",
-    hoverBorder: "group-hover:border-blue-500/50",
-    title: "Edital Petrobras 2024",
-    subtitle: "Atualizado há 2h",
-    status: { type: "done" },
+    id: "1",
+    title: "FAPESP 2026 — Proposta Saúde Digital",
+    updatedAt: "Há 2 horas",
+    noteCount: 14,
   },
   {
-    icon: "folder",
-    iconColor: "text-orange-400",
-    hoverBorder: "group-hover:border-orange-500/50",
-    title: "Projeto SebraeTec",
-    subtitle: "Editando rascunho",
-    status: { type: "progress", percent: 45, ringColor: "text-orange-500", textColor: "text-orange-400" },
+    id: "2",
+    title: "CNPq IA Aplicada — Rascunho",
+    updatedAt: "Ontem",
+    noteCount: 8,
   },
   {
-    icon: "folder_shared",
-    iconColor: "text-purple-400",
-    hoverBorder: "group-hover:border-purple-500/50",
-    title: "Licitação BB Tecnologia",
-    subtitle: "Aguardando revisão",
-    status: { type: "progress", percent: 80, ringColor: "text-purple-500", textColor: "text-purple-400" },
-  },
-  {
-    icon: "folder",
-    iconColor: "text-zinc-400",
-    hoverBorder: "group-hover:border-zinc-500/50",
-    title: "Rascunho: Embrapii",
-    subtitle: "Criado ontem",
-    status: { type: "progress", percent: 10, ringColor: "text-zinc-500", textColor: "text-zinc-400" },
+    id: "3",
+    title: "FINEP Impacto Social — Pesquisa",
+    updatedAt: "3 dias atrás",
+    noteCount: 22,
   },
 ];
 
-function ProgressRing({
-  percent,
-  ringColor,
-  textColor,
-}: {
-  percent: number;
-  ringColor: string;
-  textColor: string;
-}) {
-  return (
-    <div className="relative h-8 w-8 flex items-center justify-center shrink-0">
-      <span className={`text-[10px] font-bold z-10 ${textColor}`}>{percent}%</span>
-      <svg
-        className="absolute inset-0 h-full w-full -rotate-90"
-        viewBox="0 0 36 36"
-        aria-hidden
-      >
-        <path
-          className="text-[#27272a]"
-          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="3"
-        />
-        <path
-          className={ringColor}
-          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-          fill="none"
-          stroke="currentColor"
-          strokeDasharray={`${percent}, 100`}
-          strokeWidth="3"
-        />
-      </svg>
-    </div>
-  );
-}
-
 export function RecentNotebooks() {
   return (
-    <div className="glass-panel rounded-3xl p-6 h-full border border-white/[0.08]">
-      <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-bold text-white">Notebooks Recentes</h3>
-        <button className="text-zinc-500 hover:text-white transition-colors">
-          <span className="material-symbols-outlined">more_horiz</span>
-        </button>
+    <section>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-lg font-semibold text-[--color-text-primary]">
+          Notebooks Recentes
+        </h2>
+        <Link
+          href="/notebooks"
+          className="text-xs font-medium text-[--color-primary] hover:text-[--color-primary-hover] transition-colors flex items-center gap-1"
+        >
+          Ver todos <ArrowUpRight size={12} />
+        </Link>
       </div>
 
-      <div className="space-y-1">
-        {NOTEBOOKS.map((nb) => (
-          <div
-            key={nb.title}
-            className="flex items-center gap-4 p-3 rounded-xl hover:bg-white/5 transition-colors cursor-pointer group"
+      <div className="space-y-3">
+        {MOCK_NOTEBOOKS.map((nb, i) => (
+          <motion.div
+            key={nb.id}
+            initial={{ opacity: 0, x: 10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: i * 0.08, duration: 0.4 }}
           >
-            <div
-              className={`h-12 w-12 rounded-xl bg-[#18181b] border border-white/5 flex items-center justify-center ${nb.iconColor} ${nb.hoverBorder} transition-colors shrink-0`}
+            <Link
+              href={`/notebooks/${nb.id}`}
+              className="glass-card rounded-2xl p-4 flex items-center gap-4 group"
             >
-              <span className="material-symbols-outlined">{nb.icon}</span>
-            </div>
-
-            <div className="flex-1 min-w-0">
-              <h5 className="text-white font-medium truncate">{nb.title}</h5>
-              <p className="text-zinc-500 text-xs">{nb.subtitle}</p>
-            </div>
-
-            {nb.status.type === "done" ? (
-              <div className="h-8 w-8 rounded-full border-2 border-[#18181b] flex items-center justify-center text-white bg-green-500 ml-auto shrink-0">
-                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>check</span>
+              <div className="shrink-0 w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+                <BookOpen size={16} />
               </div>
-            ) : (
-              <ProgressRing
-                percent={nb.status.percent}
-                ringColor={nb.status.ringColor}
-                textColor={nb.status.textColor}
-              />
-            )}
-          </div>
+
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-[--color-text-primary] group-hover:text-white transition-colors line-clamp-1">
+                  {nb.title}
+                </p>
+                <div className="flex items-center gap-2 mt-1 text-xs text-[--color-text-muted]">
+                  <Clock size={10} />
+                  <span>{nb.updatedAt}</span>
+                  <span className="text-[--color-text-muted]">
+                    {nb.noteCount} notas
+                  </span>
+                </div>
+              </div>
+            </Link>
+          </motion.div>
         ))}
       </div>
-
-      <div className="mt-6 pt-4 border-t border-white/5 text-center">
-        <button className="w-full py-2 rounded-lg bg-[#18181b] text-zinc-400 hover:text-white text-sm font-medium hover:bg-white/5 transition-all">
-          Ver todos os notebooks
-        </button>
-      </div>
-    </div>
+    </section>
   );
 }
