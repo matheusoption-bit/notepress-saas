@@ -1,4 +1,5 @@
 /* ─── HotEditais.tsx ────────────────────────────────── */
+import Link from 'next/link';
 
 interface Edital {
   badge: { text: string; className: string };
@@ -42,9 +43,9 @@ export function HotEditais() {
           <span className="material-symbols-outlined text-orange-500">local_fire_department</span>
           Editais Quentes
         </h3>
-        <a href="/editais" className="text-sm font-medium text-[#3b2bee] hover:text-[#3b2bee]/80">
+        <Link href="/editais" className="text-sm font-medium text-[#3b2bee] hover:text-[#3b2bee]/80">
           Ver todos
-        </a>
+        </Link>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

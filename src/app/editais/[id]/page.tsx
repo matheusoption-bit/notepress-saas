@@ -4,9 +4,18 @@ import { use, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Calendar, DollarSign, Target, ArrowLeft, Sparkles, Building2 } from 'lucide-react';
 
+interface EditalDetails {
+  id: string;
+  nome: string;
+  orgao: string;
+  dataFechamento: string | null;
+  valorMax: number | null;
+  resumo: string | null;
+}
+
 export default function EditalPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const [edital, setEdital] = useState<any>(null);
+  const [edital, setEdital] = useState<EditalDetails | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -15,7 +24,7 @@ export default function EditalPage({ params }: { params: Promise<{ id: string }>
         if (!res.ok) throw new Error('Edital não encontrado');
         return res.json();
       })
-      .then(data => {
+      .then((data: EditalDetails) => {
         setEdital(data);
         setLoading(false);
       })

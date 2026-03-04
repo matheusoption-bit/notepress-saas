@@ -415,7 +415,7 @@ export async function POST(req: Request) {
         ).length;
         const total = allResults.length;
 
-        let base = fulfilledCount / total;
+        const base = fulfilledCount / total;
         const modePenalty: Record<DebateMode, number> = {
           CONSENSUS: 0,
           DEVILS_ADVOCATE: -0.1,

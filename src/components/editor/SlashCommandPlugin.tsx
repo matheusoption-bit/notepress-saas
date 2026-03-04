@@ -299,12 +299,14 @@ class SlashMenuOption extends MenuOption {
 
 // ── Item de menu individual ────────────────────────────────────
 function SlashMenuItem({
-  option,
+  command,
+  setRefElement,
   isSelected,
   onMouseEnter,
   onClick,
 }: {
-  option: SlashMenuOption;
+  command: SlashCommandDef;
+  setRefElement: (element: HTMLElement | null) => void;
   isSelected: boolean;
   onMouseEnter: () => void;
   onClick: () => void;
@@ -317,12 +319,12 @@ function SlashMenuItem({
       className={`slash-menu-item${isSelected ? ' slash-menu-item--active' : ''}`}
       onMouseEnter={onMouseEnter}
       onClick={onClick}
-      ref={option.setRefElement}
+      ref={(element) => setRefElement(element)}
     >
-      <span className="slash-menu-item__icon">{option.def.icon}</span>
+      <span className="slash-menu-item__icon">{command.icon}</span>
       <span className="slash-menu-item__text">
-        <span className="slash-menu-item__label">{option.def.label}</span>
-        <span className="slash-menu-item__desc">{option.def.description}</span>
+        <span className="slash-menu-item__label">{command.label}</span>
+        <span className="slash-menu-item__desc">{command.description}</span>
       </span>
     </li>
   );
@@ -402,7 +404,8 @@ export default function SlashCommandPlugin() {
                 {options.map((option, index) => (
                   <SlashMenuItem
                     key={option.key}
-                    option={option}
+                    command={option.def}
+                    setRefElement={option.setRefElement}
                     isSelected={selectedIndex === index}
                     onMouseEnter={() => setHighlightedIndex(index)}
                     onClick={() => selectOptionAndCleanUp(option)}
