@@ -58,7 +58,13 @@ export default function NotebookPage({
   const [notebookTitle, setNotebookTitle] = useState<string>('Carregando…');
   const [initialState, setInitialState]   = useState<string | null>(null);  const [editalId, setEditalId]           = useState<string | null>(null);  const [saveStatus, setSaveStatus]       = useState<SaveStatus>('idle');
   const [zenMode, setZenMode]             = useState(false);
-  const [fullZen, setFullZen]             = useState(false);
+  const [fullZen, setFullZen]             = useState(() => {
+    // Restaura preferência salva no localStorage (SSR-safe)
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('notepress.zenMode') === 'true';
+    }
+    return false;
+  });
 
   // ── Refs para timers (não causam re-render) ──────────────────
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -132,6 +138,23 @@ export default function NotebookPage({
     [editalId],
   );
 
+  // ── Zen 2.0: persiste preferência no localStorage ────────────
+  useEffect(() => {
+    localStorage.setItem('notepress.zenMode', String(fullZen));
+  }, [fullZen]);
+
+  // ── Zen 2.0: atalho Ctrl+Shift+Z ────────────────────────
+  useEffect(() => {
+    function onZenShortcut(e: KeyboardEvent) {
+      if (e.ctrlKey && e.shiftKey && e.code === 'KeyZ') {
+        e.preventDefault();
+        setFullZen(prev => !prev);
+      }
+    }
+    window.addEventListener('keydown', onZenShortcut);
+    return () => window.removeEventListener('keydown', onZenShortcut);
+  }, []);
+
   // ── Modo Zen: ativa ao digitar, desativa após 2.5s de pausa ─
   useEffect(() => {
     // Teclas que representam conteúdo real (ignora só-modificadores)
@@ -186,8 +209,12 @@ export default function NotebookPage({
             <SaveIndicator status={saveStatus} />
 
             <button
-              className="notebook-topbar__btn"
-              title={fullZen ? 'Sair do Modo Zen' : 'Modo Zen — foco total'}
+              className={`notebook-topbar__btn${
+                fullZen ? ' notebook-topbar__btn--zen-active' : ''
+              }`}
+              title={fullZen
+                ? 'Sair do Modo Zen — Ctrl+Shift+Z'
+                : 'Modo Zen 2.0 — imersão total (Ctrl+Shift+Z)'}
               onClick={() => setFullZen(f => !f)}
             >
               {fullZen ? <Minimize2 size={15} /> : <Maximize2 size={15} />}

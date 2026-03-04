@@ -2179,12 +2179,12 @@ body {
   background: rgba(24, 24, 27, 0.75);
   backdrop-filter: blur(18px) saturate(140%);
   -webkit-backdrop-filter: blur(18px) saturate(140%);
-  /* Transição Zen: suave e com curva de ease-out */
+  /* Transição base — usada pelo zen de digitação */
   transition:
     opacity 0.55s cubic-bezier(0.16, 1, 0.3, 1),
     transform 0.55s cubic-bezier(0.16, 1, 0.3, 1),
     width 0.45s cubic-bezier(0.16, 1, 0.3, 1);
-  will-change: opacity, transform;
+  will-change: opacity, transform, width;
   overflow: hidden;
   z-index: 10;
 }
@@ -2213,11 +2213,91 @@ body {
   pointer-events: auto;
 }
 
-/* ── Modo Zen Full: oculta sidebars completamente ────────────── */
+/* ══════════════════════════════════════════════════════════════
+   Modo Zen 2.0 — imersão total (Ctrl+Shift+Z)
+   Transições lentas, quase imperceptíveis — como luzes se
+   apagando lentamente.
+   ══════════════════════════════════════════════════════════════ */
+
+/* Vignette: sombras nas 4 bordas da viewport via pseudo-elementos */
+.notebook-layout[data-full-zen='true']::before,
+.notebook-layout[data-full-zen='true']::after {
+  content: '';
+  position: fixed;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+  z-index: 100;
+  opacity: 1;
+  transition: opacity 1000ms ease-in-out;
+}
+
+.notebook-layout[data-full-zen='true']::before {
+  top: 0;
+  height: 22vh;
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.42) 0%,
+    transparent 100%
+  );
+}
+
+.notebook-layout[data-full-zen='true']::after {
+  bottom: 0;
+  height: 22vh;
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.42) 0%,
+    transparent 100%
+  );
+}
+
+/* Vignette lateral — via outline-shadow no notebook-layout */
+.notebook-layout[data-full-zen='true'] {
+  box-shadow: inset 20px 0 60px rgba(0, 0, 0, 0.35),
+              inset -20px 0 60px rgba(0, 0, 0, 0.35);
+  transition: box-shadow 1000ms ease-in-out;
+}
+
+/* Sidebars: somem lentamente */
 .notebook-layout[data-full-zen='true'] .notebook-sidebar {
   width: 0 !important;
   opacity: 0 !important;
   pointer-events: none !important;
+  transition:
+    opacity 1000ms ease-in-out,
+    width 900ms ease-in-out !important;
+}
+
+/* Topbar do editor: some, volta no hover */
+.notebook-layout[data-full-zen='true'] .notebook-topbar {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 1000ms ease-in-out;
+}
+
+.notebook-layout[data-full-zen='true'] .notebook-topbar:hover {
+  opacity: 1;
+  pointer-events: auto;
+  transition: opacity 300ms ease-in-out;
+}
+
+/* Lexical paper — aura-glow violet suave */
+.notebook-layout[data-full-zen='true'] .lexical-paper {
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.4),
+    0 10px 15px -3px rgba(0, 0, 0, 0.5),
+    0 25px 50px -12px rgba(0, 0, 0, 0.7),
+    0 0 0 1px rgba(167, 139, 250, 0.18),
+    0 0 70px -8px rgba(124, 58, 237, 0.28),
+    0 0 140px -20px rgba(139, 92, 246, 0.16);
+  transition: box-shadow 1000ms ease-in-out;
+}
+
+/* Canvas escurece levemente para dar destaque à folha */
+.notebook-layout[data-full-zen='true'] .lexical-canvas {
+  background-color: #050507;
+  transition: background-color 1000ms ease-in-out;
 }
 
 /* ── Canvas central ──────────────────────────────────────────── */
@@ -2280,6 +2360,18 @@ body {
   background: rgba(255, 255, 255, 0.06);
   color: #d4d4d8;
   border-color: rgba(255, 255, 255, 0.12);
+}
+
+/* Zen 2.0 ativo: botão com acento violet */
+.notebook-topbar__btn--zen-active {
+  background: rgba(124, 58, 237, 0.15) !important;
+  border-color: rgba(139, 92, 246, 0.4) !important;
+  color: #a78bfa !important;
+}
+
+.notebook-topbar__btn--zen-active:hover {
+  background: rgba(124, 58, 237, 0.25) !important;
+  color: #c4b5fd !important;
 }
 
 /* ── Indicador de salvamento ─────────────────────────────────── */
