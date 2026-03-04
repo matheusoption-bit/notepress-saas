@@ -17,6 +17,7 @@ import { auth }                 from '@clerk/nextjs/server';
 import { prisma }               from '@/lib/prisma';
 import { decrypt }              from '@/lib/encrypt';
 import { validateInnovation }   from '@/lib/ai/innovation-validator';
+import { buildRateLimitHeaders, checkAiRateLimit } from '@/lib/rate-limit';
 
 export const maxDuration = 60; // segundos — buscas externas podem ser lentas
 
@@ -39,6 +40,14 @@ export async function POST(req: Request) {
 
   if (!clerkId) {
     return NextResponse.json({ error: 'Não autenticado.' }, { status: 401 });
+  }
+
+  const rate = checkAiRateLimit(`innovation-validator:${clerkId}`);
+  if (!rate.allowed) {
+    return NextResponse.json(
+      { error: 'Limite de validações atingido. Aguarde alguns segundos.' },
+      { status: 429, headers: buildRateLimitHeaders(rate) },
+    );
   }
 
   // ── 2. Parse do body ──────────────────────────────────────────────────────

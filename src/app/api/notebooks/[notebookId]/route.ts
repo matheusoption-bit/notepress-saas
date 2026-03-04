@@ -1,28 +1,10 @@
 // src/app/api/notebooks/[notebookId]/route.ts
-import { auth, currentUser } from '@clerk/nextjs/server';
+import { auth } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { ensureUser } from '@/lib/ensure-user';
 
 type RouteContext = { params: Promise<{ notebookId: string }> };
-
-// ── Garante que o User existe no Prisma (cria na primeira chamada) ────────────
-async function ensureUser(clerkId: string) {
-  const clerkUser = await currentUser();
-  if (!clerkUser) return null;
-
-  const email =
-    clerkUser.emailAddresses.find((e) => e.id === clerkUser.primaryEmailAddressId)
-      ?.emailAddress ?? clerkUser.emailAddresses[0]?.emailAddress ?? '';
-
-  const name =
-    [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(' ') || null;
-
-  return prisma.user.upsert({
-    where: { clerkId },
-    update: { email, name, imageUrl: clerkUser.imageUrl ?? null },
-    create: { clerkId, email, name, imageUrl: clerkUser.imageUrl ?? null },
-  });
-}
 
 // -- Helper: resolve auth + ownership em dois passos ----------------------
 

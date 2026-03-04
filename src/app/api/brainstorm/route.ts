@@ -1,8 +1,10 @@
 // src/app/api/brainstorm/route.ts
 import { NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
 import { generateObject } from 'ai';
 import { z } from 'zod';
 import { gpt } from '@/lib/ai-providers';
+import { buildRateLimitHeaders, checkAiRateLimit } from '@/lib/rate-limit';
 
 /**
  * POST /api/brainstorm
@@ -23,6 +25,19 @@ const BrainstormOutputSchema = z.object({
 });
 export async function POST(req: Request) {
   try {
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: 'Não autenticado.' }, { status: 401 });
+    }
+
+    const rate = checkAiRateLimit(`brainstorm:${userId}`);
+    if (!rate.allowed) {
+      return NextResponse.json(
+        { error: 'Limite de brainstorm atingido. Aguarde alguns segundos.' },
+        { status: 429, headers: buildRateLimitHeaders(rate) },
+      );
+    }
+
     const formData = await req.formData();
     const audioFile = formData.get('audio');
 
