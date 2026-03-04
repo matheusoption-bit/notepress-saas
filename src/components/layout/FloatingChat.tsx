@@ -53,37 +53,12 @@ function Bubble({ message }: { message: Message }) {
 export function FloatingChat() {
   const [open, setOpen] = useState(false);
   const [minimized, setMinimized] = useState(false);
-  const [messages, setMessages] = useState<Message[]>(WELCOME);
-  const [input, setInput] = useState("");
+  const [messages] = useState<Message[]>(WELCOME);
   const endRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (open && !minimized) endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, open, minimized]);
-
-  useEffect(() => {
-    if (open && !minimized) setTimeout(() => inputRef.current?.focus(), 150);
-  }, [open, minimized]);
-
-  function send() {
-    const text = input.trim();
-    if (!text) return;
-    const userMsg: Message = { id: `u-${Date.now()}`, role: "user", content: text, timestamp: new Date() };
-    setMessages((p) => [...p, userMsg]);
-    setInput("");
-    setTimeout(() => {
-      setMessages((p) => [
-        ...p,
-        { id: `a-${Date.now()}`, role: "assistant", content: "Em breve o Notepress IA estará integrado. Por enquanto estou em modo preview.", timestamp: new Date() },
-      ]);
-    }, 800);
-  }
-
-  function onKey(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
-    if (e.key === "Escape") setOpen(false);
-  }
 
   return (
     <>
@@ -114,8 +89,8 @@ export function FloatingChat() {
             </div>
             <div>
               <p className="text-[13px] font-semibold text-[var(--color-text-primary)] leading-tight">Notepress IA</p>
-              <p className="text-[10px] text-[var(--color-text-muted)] leading-tight mt-0.5">Preview</p>
             </div>
+            <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-[var(--color-warning-subtle)] text-[var(--color-warning)] leading-none">Em breve</span>
           </div>
           <div className="flex items-center gap-0.5">
             <button onClick={() => setMinimized((v) => !v)} className="p-1.5 rounded-md text-[var(--color-text-muted)] hover:bg-[var(--color-background-hover)] transition-colors" aria-label="Minimizar">
@@ -135,31 +110,24 @@ export function FloatingChat() {
               <div ref={endRef} />
             </div>
 
-            {/* Input */}
+            {/* Input — disabled during preview */}
             <div className="flex-shrink-0 flex items-center gap-2 px-3 py-2.5 border-t border-[var(--color-border-default)]">
-              <input
-                ref={inputRef}
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={onKey}
-                placeholder="Pergunte algo…"
+              <div
                 className={cn(
-                  "flex-1 min-w-0 h-8 px-3 rounded-lg text-[13px]",
+                  "flex-1 min-w-0 h-8 px-3 rounded-lg text-[13px] flex items-center",
                   "bg-[var(--color-background-hover)] border border-[var(--color-border-default)]",
-                  "text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)]",
-                  "outline-none focus:border-[var(--color-border-focus)]",
-                  "transition-colors duration-150"
+                  "text-[var(--color-text-muted)] select-none opacity-60"
                 )}
-              />
+              >
+                Chat em breve disponível…
+              </div>
               <button
-                onClick={send}
-                disabled={!input.trim()}
+                disabled
                 className={cn(
                   "flex items-center justify-center w-8 h-8 rounded-lg flex-shrink-0",
                   "bg-[var(--color-primary)] text-white",
-                  "hover:bg-[var(--color-primary-hover)]",
                   "disabled:opacity-30 disabled:cursor-not-allowed",
-                  "transition-colors duration-150 active:scale-95"
+                  "transition-colors duration-150"
                 )}
                 aria-label="Enviar"
               >

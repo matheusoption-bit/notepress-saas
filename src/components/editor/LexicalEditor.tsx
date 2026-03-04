@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { LexicalComposer } from '@lexical/react/LexicalComposer';
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
 import { ContentEditable } from '@lexical/react/LexicalContentEditable';
@@ -31,6 +31,13 @@ import FloatingActionToolbar, {
 import { CUSTOM_NODES } from './CustomNodes';
 import WidgetInsertPlugin from './WidgetInsertPlugin';
 import AudioRecorderPlugin from './AudioRecorderPlugin';
+import {
+  useDocumentAutoSave,
+  type SaveStatus,
+} from '@/hooks/useDocumentAutoSave';
+
+// Re-export para consumo externo (page, header, etc.)
+export type { SaveStatus };
 
 // ── Nodes registrados ──────────────────────────────────────────
 const editorNodes = [
@@ -65,10 +72,10 @@ interface LexicalEditorProps {
   namespace?: string;
   /**
    * Callback disparado ao modificar o conteúdo.
-   * Recebe o estado serializado como JSON puro (string) — pronto
-   * para ser persistido no campo `content` do modelo Document do Prisma.
+   * Recebe o EditorState bruto — a serialização é responsabilidade
+   * do consumidor (ex: useDocumentAutoSave).
    */
-  onChange?: (json: string) => void;
+  onChange?: (editorState: EditorState) => void;
   /** Conteúdo inicial serializado (JSON do Lexical) */
   initialState?: string | null;
   /** Habilita foco automático ao montar */
@@ -78,8 +85,8 @@ interface LexicalEditorProps {
   /** Ignora mudanças de historico (undo/redo) para o callback onChange */
   ignoreHistoryMerge?: boolean;
   /**
-   * ID do notebook para auto-save via PATCH /api/notebooks/[notebookId].
-   * Quando fornecido, o editor salva automaticamente com debounce de 2s.
+   * ID do notebook para auto-save via useDocumentAutoSave.
+   * Quando fornecido, o editor salva automaticamente com debounce.
    */
   notebookId?: string;
   // ── IA ──────────────────────────────────────────────────────
@@ -95,10 +102,9 @@ interface LexicalEditorProps {
   onRequestSuggestion?: GhostTextPluginProps['onRequestSuggestion'];
   /** Desabilita explicitamente o Ghost Text (útil em readOnly) */
   ghostTextDisabled?: boolean;
+  /** Callback que recebe o SaveStatus atual para exibição externa (ex: header) */
+  onSaveStatusChange?: (status: SaveStatus) => void;
 }
-
-// ── Status do auto-save ────────────────────────────────────────
-type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 
 // ── Componente principal ───────────────────────────────────────
 export default function LexicalEditor({
@@ -112,66 +118,35 @@ export default function LexicalEditor({
   onAIAction,
   onRequestSuggestion,
   ghostTextDisabled = false,
+  onSaveStatusChange,
 }: LexicalEditorProps) {
   const onError = useCallback((error: Error) => {
     console.error('[LexicalEditor]', error);
   }, []);
 
-  // ── Auto-save ──────────────────────────────────────────────
-  const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
-  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const savedTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // ── Auto-save desacoplado via hook ─────────────────────────
+  const { saveStatus, handleChange: handleAutoSave } = useDocumentAutoSave({
+    notebookId,
+  });
 
-  // Limpa timers ao desmontar
+  // Notifica o consumidor externo sobre mudanças de status
+  const prevStatusRef = useRef(saveStatus);
   useEffect(() => {
-    return () => {
-      if (debounceTimer.current) clearTimeout(debounceTimer.current);
-      if (savedTimeoutRef.current) clearTimeout(savedTimeoutRef.current);
-    };
-  }, []);
+    if (prevStatusRef.current !== saveStatus) {
+      prevStatusRef.current = saveStatus;
+      onSaveStatusChange?.(saveStatus);
+    }
+  }, [saveStatus, onSaveStatusChange]);
 
-  const onAutoSave = useCallback(
-    async (json: string) => {
-      if (!notebookId) return;
-      setSaveStatus('saving');
-      try {
-        const res = await fetch(`/api/notebooks/${notebookId}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ content: json }),
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        setSaveStatus('saved');
-        // Retorna para 'idle' após 3s
-        savedTimeoutRef.current = setTimeout(() => setSaveStatus('idle'), 3000);
-      } catch (err) {
-        console.error('[LexicalEditor] auto-save falhou:', err);
-        setSaveStatus('error');
-      }
-    },
-    [notebookId],
-  );
-
-  // ── Persistência JSON ──────────────────────────────────────
+  // ── Combina auto-save + callback externo ─────────────────
   const handleChange = useCallback(
     (editorState: EditorState) => {
-      // Serializa o estado para JSON puro compatível com Prisma
-      const json = JSON.stringify(editorState.toJSON());
-
-      // Callback externo (se fornecido)
-      onChange?.(json);
-
-      // Auto-save com debounce de 2s
-      if (notebookId) {
-        setSaveStatus('saving');
-        if (debounceTimer.current) clearTimeout(debounceTimer.current);
-        if (savedTimeoutRef.current) clearTimeout(savedTimeoutRef.current);
-        debounceTimer.current = setTimeout(() => {
-          void onAutoSave(json);
-        }, 2000);
-      }
+      // Repassa o EditorState bruto para o callback externo
+      onChange?.(editorState);
+      // Agenda auto-save via hook (debounce interno, sem stringify por keystroke)
+      handleAutoSave(editorState);
     },
-    [onChange, notebookId, onAutoSave],
+    [onChange, handleAutoSave],
   );
 
   const initialConfig = {
@@ -182,13 +157,6 @@ export default function LexicalEditor({
     editorState: initialState ?? undefined,
     editable: !readOnly,
   };
-
-  // ── Label do status de salvamento ──────────────────────────
-  const saveLabel =
-    saveStatus === 'saving' ? 'Salvando…' :
-    saveStatus === 'saved'  ? 'Salvo ✓'  :
-    saveStatus === 'error'  ? 'Erro ao salvar' :
-    null;
 
   return (
     // ── Canvas de rolagem infinita ─────────────────────────
@@ -233,7 +201,7 @@ export default function LexicalEditor({
             {autoFocus && <AutoFocusPlugin />}
 
             {/* ── Persistência JSON → Prisma ────────── */}
-            {onChange && (
+            {(onChange || notebookId) && (
               <OnChangePlugin
                 onChange={handleChange}
                 ignoreHistoryMergeTagChange={ignoreHistoryMerge}
@@ -263,23 +231,6 @@ export default function LexicalEditor({
             {!readOnly && <AudioRecorderPlugin />}
           </div>
 
-          {/* ── Indicador de auto-save ────────────────────────────── */}
-          {notebookId && saveLabel && (
-            <div
-              aria-live="polite"
-              className={[
-                'lexical-save-status',
-                saveStatus === 'saving' ? 'lexical-save-status--saving' : '',
-                saveStatus === 'saved'  ? 'lexical-save-status--saved'  : '',
-                saveStatus === 'error'  ? 'lexical-save-status--error'  : '',
-              ].join(' ').trim()}
-            >
-              {saveStatus === 'saving' && (
-                <span className="lexical-save-status__spinner" aria-hidden="true" />
-              )}
-              {saveLabel}
-            </div>
-          )}
         </div>
       </LexicalComposer>
     </div>

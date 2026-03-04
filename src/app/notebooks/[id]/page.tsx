@@ -10,7 +10,8 @@
  *   • Modo Zen: ao digitar, as sidebars reduzem opacidade para 0.07 (CSS transition).
  *     Retornam após 2.5s de inatividade ou hover sobre elas.
  *   • Modo Zen Full: botão que oculta sidebars completamente para foco máximo.
- *   • Auto-save: debounce de 1500ms no onChange do Lexical → PATCH /api/notebooks/:id.
+ *   • Auto-save: gerenciado pelo hook useDocumentAutoSave via LexicalEditor (debounce 2s).
+ *     Status propagado via onSaveStatusChange e exibido no topbar (padrão Linear/Notion).
  *   • Carrega o estado inicial via GET /api/notebooks/:id (campo `content` do Document).
  */
 
@@ -29,13 +30,13 @@ import {
   Maximize2,
   Minimize2,
 } from 'lucide-react';
-import LexicalEditor from '@/components/editor/LexicalEditor';
+import LexicalEditor, { type SaveStatus } from '@/components/editor/LexicalEditor';
 import { BrainstormRecordButton } from '@/components/editor/AudioRecorderPlugin';
 import SourcesSidebar from '@/components/SourcesSidebar';
 import RightPanel from '@/components/RightPanel';
 
 // ── Tipos ─────────────────────────────────────────────────────
-type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
+// SaveStatus agora é importado do editor/hook centralizado
 
 // ── Indicador visual de salvamento ────────────────────────────
 function SaveIndicator({ status }: { status: SaveStatus }) {
@@ -67,7 +68,6 @@ export default function NotebookPage({
   });
 
   // ── Refs para timers (não causam re-render) ──────────────────
-  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const zenTimer  = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ── Carrega o notebook ao montar (GET /api/notebooks/:id) ───
@@ -95,28 +95,12 @@ export default function NotebookPage({
     load();
   }, [id]);
 
-  // ── Auto-save: debounce 1500ms → PATCH /api/notebooks/:id ───
-  const handleEditorChange = useCallback(
-    (json: string) => {
-      if (saveTimer.current) clearTimeout(saveTimer.current);
-      setSaveStatus('saving');
-
-      saveTimer.current = setTimeout(async () => {
-        try {
-          const res = await fetch(`/api/notebooks/${id}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ content: json }),
-          });
-          setSaveStatus(res.ok ? 'saved' : 'error');
-          setTimeout(() => setSaveStatus('idle'), 3000);
-        } catch {
-          setSaveStatus('error');
-          setTimeout(() => setSaveStatus('idle'), 4000);
-        }
-      }, 3000);
+  // ── Callback de status do auto-save (vindo do hook via LexicalEditor) ──
+  const handleSaveStatusChange = useCallback(
+    (status: SaveStatus) => {
+      setSaveStatus(status);
     },
-    [id],
+    [],
   );
 
   // ── Ghost Text: chama POST /api/ai/ghost-text ─────────────
@@ -175,7 +159,6 @@ export default function NotebookPage({
     return () => {
       window.removeEventListener('keydown', onKeyDown);
       if (zenTimer.current)  clearTimeout(zenTimer.current);
-      if (saveTimer.current) clearTimeout(saveTimer.current);
     };
   }, []);
 
@@ -236,7 +219,8 @@ export default function NotebookPage({
           <LexicalEditor
             namespace={`notebook-${id}`}
             initialState={initialState}
-            onChange={handleEditorChange}
+            notebookId={id}
+            onSaveStatusChange={handleSaveStatusChange}
             onRequestSuggestion={handleRequestSuggestion}
             autoFocus
           />

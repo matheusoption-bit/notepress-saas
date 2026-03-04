@@ -1,17 +1,26 @@
 // src/app/api/brainstorm/route.ts
 import { NextResponse } from 'next/server';
+import { generateObject } from 'ai';
+import { z } from 'zod';
+import { gpt } from '@/lib/ai-providers';
 
 /**
  * POST /api/brainstorm
  *
  * Recebe `multipart/form-data` com o campo `audio` (Blob/File de áudio WebM/mp4).
  * Fluxo:
- *   1. Whisper (OpenAI) → transcrição em PT-BR
- *   2. GPT-4o → estrutura JSON: { resumo, planoDeAcao[], sugestoesDePesquisa[] }
+ *   1. Whisper (OpenAI) → transcrição em PT-BR (fetch direto — sem suporte no AI SDK)
+ *   2. GPT-4o via AI SDK `generateObject` → saída tipada via Zod
  *
  * Se `OPENAI_API_KEY` não estiver configurada, retorna dados de mock para
  * que a funcionalidade possa ser testada sem custo.
  */
+
+const BrainstormOutputSchema = z.object({
+  resumo: z.string().describe('Resumo de 1-2 frases da ideia central'),
+  planoDeAcao: z.array(z.string()).max(6).describe('Até 6 ações concretas e acionáveis'),
+  sugestoesDePesquisa: z.array(z.string()).max(4).describe('Até 4 temas de pesquisa relevantes'),
+});
 export async function POST(req: Request) {
   try {
     const formData = await req.formData();
@@ -79,38 +88,27 @@ export async function POST(req: Request) {
 
     const transcricao = (await whisperRes.text()).trim();
 
-    // ── Passo 2: Estruturação com GPT-4o ────────────────────────
+    // ── Passo 2: Estruturação com GPT-4o via AI SDK ────────────
     const systemPrompt = `Você é um especialista em inovação e editais de fomento brasileiros (FINEP, CNPq, BNDES).
-Ao receber uma transcrição de brainstorm, retorne APENAS um JSON válido no formato:
-{
-  "resumo": "string de 1-2 frases resumindo a ideia central",
-  "planoDeAcao": ["ação 1", "ação 2", ... até 6 itens concisos e acionáveis],
-  "sugestoesDePesquisa": ["tema 1", "tema 2", ... até 4 sugestões de referências ou pesquisas relevantes]
-}
+Ao receber uma transcrição de brainstorm, extraia as informações principais.
 Seja objetivo, técnico e use vocabulário adequado para propostas de P&D.`;
 
-    const gptRes = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        response_format: { type: 'json_object' },
+    try {
+      const { object: structured } = await generateObject({
+        model: gpt('gpt-4o'),
+        schema: BrainstormOutputSchema,
+        system: systemPrompt,
+        prompt: `Transcrição do brainstorm:\n\n"${transcricao}"`,
         temperature: 0.4,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          {
-            role: 'user',
-            content: `Transcrição do brainstorm:\n\n"${transcricao}"`,
-          },
-        ],
-      }),
-    });
+      });
 
-    if (!gptRes.ok) {
-      const err = await gptRes.text();
+      return NextResponse.json({
+        transcricao,
+        resumo: structured.resumo,
+        planoDeAcao: structured.planoDeAcao,
+        sugestoesDePesquisa: structured.sugestoesDePesquisa,
+      });
+    } catch (err) {
       console.error('[Brainstorm GPT-4o]', err);
       // Retorna a transcrição mesmo sem a estruturação
       return NextResponse.json({
@@ -120,25 +118,6 @@ Seja objetivo, técnico e use vocabulário adequado para propostas de P&D.`;
         sugestoesDePesquisa: [],
       });
     }
-
-    const gptData = await gptRes.json() as {
-      choices: Array<{ message: { content: string } }>;
-    };
-
-    const structured = JSON.parse(
-      gptData.choices[0]?.message?.content ?? '{}',
-    ) as {
-      resumo?: string;
-      planoDeAcao?: string[];
-      sugestoesDePesquisa?: string[];
-    };
-
-    return NextResponse.json({
-      transcricao,
-      resumo: structured.resumo ?? '',
-      planoDeAcao: structured.planoDeAcao ?? [],
-      sugestoesDePesquisa: structured.sugestoesDePesquisa ?? [],
-    });
   } catch (error) {
     console.error('[API /brainstorm]', error);
     return NextResponse.json({ error: 'Erro interno no servidor.' }, { status: 500 });

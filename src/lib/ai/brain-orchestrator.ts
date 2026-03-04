@@ -1,28 +1,39 @@
 /**
  * brain-orchestrator.ts
  *
- * Notepress Brain — Cérebro Quadripartite
+ * Notepress Brain — Orquestrador Sequencial (4 agentes)
  *
- * Orquestra 4 agentes especializados em sequência, cada um com um papel distinto:
- *   GEMINI_SEARCH  → Analyst      : busca web em tempo real + análise de documentos
- *   DEEPSEEK       → Reviewer     : análise quantitativa e revisão crítica
- *   LLAMA          → Executor     : estruturação em checklist, passos e ações concretas
- *   WATSONX_BR     → Compliance BR: contexto regulatório e marcos legais brasileiros
+ * Executa 4 agentes em sequência, cada um recebendo o contexto acumulado
+ * dos anteriores. Ideal para análise profunda e individual de propostas.
+ *
+ *   ANALYST      → GEMINI_SEARCH : busca web em tempo real + análise
+ *   REVIEWER      → DEEPSEEK      : análise quantitativa e revisão crítica
+ *   EXECUTOR      → LLAMA         : estruturação em checklist e ações
+ *   COMPLIANCE_BR → WATSONX_BR    : contexto regulatório brasileiro
+ *
+ * Nota: Este é o fluxo SEQUENCIAL. Para o fluxo PARALELO com debate
+ * cruzado entre 5 agentes, veja /api/ai/debate/route.ts.
  *
  * Padrão: adaptado do "ConversationManager" do api-cookbook da Perplexity.
- *
  * Persiste: BrainRun → BrainNode[] + AgentMemory (Prisma).
+ *
+ * @see src/lib/ai/agent-factory.ts — Configuração centralizada de agentes.
  */
 
 import { generateText } from 'ai';
-import { quadripartiteProviders } from './ai-providers';
 import { prisma } from '@/lib/prisma';
+import {
+  getAgentForRole,
+  BRAIN_SEQUENCE,
+  type AgentRole,
+  type AgentType,
+} from './agent-factory';
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
-export type AgentRole = 'ANALYST' | 'REVIEWER' | 'EXECUTOR' | 'COMPLIANCE_BR';
-
-export type QuadripartiteAgentType = 'GEMINI_SEARCH' | 'GEMINI_CREATE' | 'DEEPSEEK' | 'LLAMA' | 'WATSONX_BR';
+/** Alias mantido para retro-compatibilidade com consumers existentes */
+export type QuadripartiteAgentType = AgentType;
+export type { AgentRole };
 
 export interface AgentOutput {
   role: AgentRole;
@@ -160,8 +171,9 @@ async function runAgent(params: RunAgentParams): Promise<AgentOutput> {
     .filter(Boolean)
     .join('\n\n');
 
-  // Seleciona o modelo correto por agente via quadripartiteProviders
-  const model = quadripartiteProviders[agentType];
+  // Seleciona o modelo correto por agente via AgentFactory
+  const agentConfig = getAgentForRole(role);
+  const model = agentConfig.model;
 
   const { text, usage } = await generateText({
     model,
@@ -190,15 +202,8 @@ async function runAgent(params: RunAgentParams): Promise<AgentOutput> {
 
 // ─── Orquestrador principal ───────────────────────────────────────────────────
 
-const AGENT_SEQUENCE: Array<{
-  role: AgentRole;
-  agentType: QuadripartiteAgentType;
-}> = [
-  { role: 'ANALYST',        agentType: 'GEMINI_SEARCH' }, // Auditor Web — pesquisa em tempo real
-  { role: 'REVIEWER',       agentType: 'DEEPSEEK' },       // Analista Quantitativo — revisão crítica
-  { role: 'EXECUTOR',       agentType: 'LLAMA' },           // Revisor Ultra-Rápido — estruturação
-  { role: 'COMPLIANCE_BR', agentType: 'WATSONX_BR' },    // Árbitro de Compliance BR
-];
+// Sequência de agentes importada da factory centralizada
+const AGENT_SEQUENCE = BRAIN_SEQUENCE;
 
 /**
  * Executa o Notepress Brain com os 4 agentes em sequência.
@@ -259,8 +264,9 @@ export async function runBrain(input: BrainRunInput): Promise<BrainRunOutput> {
     }
 
     // Síntese final usando Llama via Groq (ultra-rápido e barato)
+    const synthesisAgent = getAgentForRole('EXECUTOR');
     const { text: synthesis } = await generateText({
-      model: quadripartiteProviders.LLAMA,
+      model: synthesisAgent.model,
       system:
         'Você é um sintetizador de informações. Crie um resumo executivo em português, ' +
         'com no máximo 3 parágrafos, integrando os pontos mais importantes de todos os agentes. ' +

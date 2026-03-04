@@ -1,14 +1,24 @@
 /**
  * POST /api/ai/quadripartite
  *
- * Cérebro Quadripartite — 5 agentes de IA debatem em 3 rodadas progressivas.
+ * Notepress Debate Engine — 5 agentes de IA debatem em 3 rodadas progressivas.
  *
- * Stack:
- *   GEMINI_SEARCH  → Google Gemini 2.5 Flash + Search Grounding (Auditor Web)
- *   GEMINI_CREATE  → Google Gemini 2.5 Flash puro (Pesquisador Criativo)
- *   DEEPSEEK       → DeepSeek Chat (Analista Quantitativo)
- *   LLAMA          → Groq / Llama 3.3 70B (Revisor Ultra-Rápido)
- *   WATSONX_BR     → IBM Granite 3.8B (Árbitro de Compliance BR)
+ * Este é o fluxo PARALELO de debate cruzado. Os 5 agentes analisam
+ * simultaneamente e depois debatem entre si em 3 rodadas:
+ *   Rodada 1: Análise independente
+ *   Rodada 2: Debate cruzado (reagem às análises uns dos outros)
+ *   Rodada 3: Síntese e convergência
+ *
+ * Stack (5 agentes — configuração centralizada em agent-factory.ts):
+ *   GEMINI_SEARCH  → Auditor Web (busca em tempo real)
+ *   GEMINI_CREATE  → Pesquisador Criativo (conexões interdisciplinares)
+ *   DEEPSEEK       → Analista Quantitativo (viabilidade financeira)
+ *   LLAMA          → Revisor Ultra-Rápido (identifica inconsisências)
+ *   WATSONX_BR     → Compliance BR (LGPD, FINEP, Lei de Inovação)
+ *
+ * Nota: Para o fluxo SEQUENCIAL com 4 agentes, veja brain-orchestrator.ts.
+ *
+ * @see src/lib/ai/agent-factory.ts — Factory centralizada de agentes.
  */
 
 import { NextResponse } from 'next/server';
@@ -16,31 +26,12 @@ import { auth } from '@clerk/nextjs/server';
 import { generateText } from 'ai';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
-import { quadripartiteProviders } from '@/lib/ai-providers';
-import { DebateMode, AgentType } from '@prisma/client';
+import { getAgent, DEBATE_AGENTS, type AgentType } from '@/lib/ai/agent-factory';
+import { DebateMode } from '@prisma/client';
 
 // ─── Configuração do Next.js ──────────────────────────────────────────────────
 
-export const maxDuration = 45; // segundos — timeout da rota
-
-// ─── Modelos por agente ───────────────────────────────────────────────────────
-
-const AGENT_MODELS: Record<AgentType, import('ai').LanguageModel> = {
-  GEMINI_SEARCH: quadripartiteProviders.GEMINI_SEARCH,
-  GEMINI_CREATE: quadripartiteProviders.GEMINI_CREATE,
-  DEEPSEEK:      quadripartiteProviders.DEEPSEEK,
-  LLAMA:         quadripartiteProviders.LLAMA,
-  WATSONX_BR:    quadripartiteProviders.WATSONX_BR,
-};
-
-// Temperaturas diferentes por agente (personalidade)
-const AGENT_TEMPERATURES: Record<AgentType, number> = {
-  GEMINI_SEARCH: 0.3,  // preciso — busca e auditoria web
-  GEMINI_CREATE: 0.7,  // criativo — pesquisa e conexões interdisciplinares
-  DEEPSEEK:      0.5,  // equilibrado — análise quantitativa
-  LLAMA:         0.5,  // rápido — revisão e estruturação
-  WATSONX_BR:    0.2,  // determinístico — compliance normativo
-};
+export const maxDuration = 60; // segundos — aumentado para acomodar 5 agentes × 3 rodadas
 
 // ─── System prompts por agente e por modo ────────────────────────────────────
 
@@ -98,25 +89,28 @@ Responda em português, de forma objetiva e normativa, com no máximo 400 palavr
   return personas[agent];
 }
 
-// ─── Rate Limiter em memória ──────────────────────────────────────────────────
+// ─── Rate Limiter via Prisma (sobrevive a cold starts) ────────────────────────
+// Usa contagem de DebateRounds recentes como proxy — evita dependência de
+// Redis/KV externo enquanto mantém persistência entre deploys.
 
-const rateLimitStore = new Map<string, number[]>();
 const RATE_LIMIT_MAX = 15;
 const RATE_LIMIT_WINDOW_MS = 60_000;
 
-function checkRateLimit(userId: string): { allowed: boolean; remaining: number } {
-  const now = Date.now();
-  const timestamps = (rateLimitStore.get(userId) ?? []).filter(
-    (t) => now - t < RATE_LIMIT_WINDOW_MS
-  );
+async function checkRateLimit(userId: string): Promise<{ allowed: boolean; remaining: number }> {
+  const windowStart = new Date(Date.now() - RATE_LIMIT_WINDOW_MS);
 
-  if (timestamps.length >= RATE_LIMIT_MAX) {
+  const recentCount = await prisma.debateRound.count({
+    where: {
+      userId,
+      createdAt: { gte: windowStart },
+    },
+  });
+
+  if (recentCount >= RATE_LIMIT_MAX) {
     return { allowed: false, remaining: 0 };
   }
 
-  timestamps.push(now);
-  rateLimitStore.set(userId, timestamps);
-  return { allowed: true, remaining: RATE_LIMIT_MAX - timestamps.length };
+  return { allowed: true, remaining: RATE_LIMIT_MAX - recentCount };
 }
 
 // ─── Validação do body ────────────────────────────────────────────────────────
@@ -141,39 +135,30 @@ async function runAgentRound(
   system: string,
   prompt: string,
 ): Promise<AgentCallResult> {
+  const config = getAgent(agent);
   const { text } = await generateText({
-    model: AGENT_MODELS[agent],
+    model: config.model,
     system,
     prompt,
-    temperature: AGENT_TEMPERATURES[agent],
+    temperature: config.temperature,
     maxOutputTokens: 1200,
   });
 
   return { agentType: agent, content: text.trim() };
 }
 
-// ─── Cálculo de confiança do consenso ────────────────────────────────────────
+// ─── SSE Helper ──────────────────────────────────────────────────────────────
+// Envia eventos Server-Sent Events progressivos para o client.
+// Tipos de evento:
+//   round:start   { round: number }
+//   agent:done    { round, agentType, content }
+//   round:done    { round, messages[] }
+//   consensus     { consensus, confidence, mermaidCode }
+//   done          { roundId, meta }
+//   error         { message }
 
-function calculateConfidence(
-  settledResults: PromiseSettledResult<AgentCallResult>[],
-  mode: DebateMode,
-): number {
-  const fulfilled = settledResults.filter((r) => r.status === 'fulfilled').length;
-  const total = settledResults.length;
-
-  // Base: proporção de agentes que responderam com sucesso
-  let base = fulfilled / total;
-
-  // Penalidade por modo adversarial (menos consenso esperado)
-  const modePenalty: Record<DebateMode, number> = {
-    CONSENSUS: 0,
-    DEVILS_ADVOCATE: -0.1,
-    STRESS_TEST: -0.15,
-    COMPLIANCE_ONLY: -0.05,
-  };
-
-  const confidence = Math.max(0, Math.min(1, base + modePenalty[mode]));
-  return Math.round(confidence * 100) / 100;
+function sseEvent(event: string, data: unknown): string {
+  return `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
 }
 
 // ─── Handler principal ────────────────────────────────────────────────────────
@@ -201,7 +186,7 @@ export async function POST(req: Request) {
   const userId = user.id;
 
   // 2. Rate limiting ──────────────────────────────────────────────────────────
-  const { allowed, remaining } = checkRateLimit(userId);
+  const { allowed, remaining } = await checkRateLimit(userId);
   if (!allowed) {
     return NextResponse.json(
       {
@@ -257,220 +242,231 @@ export async function POST(req: Request) {
     },
   });
 
-  const agents: AgentType[] = ['GEMINI_SEARCH', 'GEMINI_CREATE', 'DEEPSEEK', 'LLAMA', 'WATSONX_BR'];
+  const agents: AgentType[] = DEBATE_AGENTS;
 
   // System prompts (estáticos por rodada neste modo)
   const systemPrompts = Object.fromEntries(
     agents.map((a) => [a, buildSystemPrompt(a, mode)])
   ) as Record<AgentType, string>;
 
-  // ─── RODADA 1: Análise independente ────────────────────────────────────────
-  const round1Prompt =
-    `TAREFA: Analise a seguinte proposta/pergunta e forneça sua avaliação inicial.\n\n` +
-    `PROPOSTA:\n${userPrompt}\n\n` +
-    `Dê sua perspectiva única de acordo com seu papel.`;
+  // ─── SSE Stream ────────────────────────────────────────────────────────────
+  // Envia eventos progressivos conforme os agentes completam cada rodada.
+  // O client pode renderizar avatares "digitando" e resultados incrementais.
 
-  const round1Results = await Promise.allSettled(
-    agents.map((agent) => runAgentRound(agent, systemPrompts[agent], round1Prompt))
-  );
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream({
+    async start(controller) {
+      const send = (event: string, data: unknown) => {
+        controller.enqueue(encoder.encode(sseEvent(event, data)));
+      };
 
-  // Persiste mensagens da Rodada 1
-  const round1Messages: { agentType: AgentType; content: string }[] = [];
-  await Promise.all(
-    round1Results.map(async (result, i) => {
-      const agentType = agents[i];
-      const content =
-        result.status === 'fulfilled'
-          ? result.value.content
-          : `[Agente indisponível: ${result.reason?.message ?? 'erro desconhecido'}]`;
+      try {
+        // ── Função auxiliar para rodar uma rodada com SSE ────────────────────
+        async function runRound(
+          round: number,
+          prompt: string | ((agent: AgentType) => string),
+        ): Promise<{ agentType: AgentType; content: string }[]> {
+          send('round:start', { round, agents });
 
-      round1Messages.push({ agentType, content });
+          const results = await Promise.allSettled(
+            agents.map(async (agent) => {
+              const p = typeof prompt === 'function' ? prompt(agent) : prompt;
+              const result = await runAgentRound(agent, systemPrompts[agent], p);
+              send('agent:done', { round, agentType: agent, content: result.content });
+              return result;
+            })
+          );
 
-      await prisma.debateMessage.create({
-        data: { debateRoundId: debateRound.id, agentType, content, round: 1 },
-      });
-    })
-  );
+          const messages: { agentType: AgentType; content: string }[] = [];
+          await Promise.all(
+            results.map(async (result, i) => {
+              const agentType = agents[i];
+              const content =
+                result.status === 'fulfilled'
+                  ? result.value.content
+                  : `[Agente indisponível: ${(result as PromiseRejectedResult).reason?.message ?? 'erro desconhecido'}]`;
 
-  // ─── RODADA 2: Debate cruzado ───────────────────────────────────────────────
-  const round1Context = round1Messages
-    .map((m) => `### ${m.agentType}\n${m.content}`)
-    .join('\n\n---\n\n');
+              messages.push({ agentType, content });
 
-  const round2Results = await Promise.allSettled(
-    agents.map((agent) =>
-      runAgentRound(
-        agent,
-        systemPrompts[agent],
-        `RODADA 2 — DEBATE CRUZADO\n\n` +
-        `PROPOSTA ORIGINAL:\n${userPrompt}\n\n` +
-        `ANÁLISES DA RODADA 1:\n${round1Context}\n\n` +
-        `Responda às análises dos outros agentes. Concorde, discorde ou complemente ` +
-        `com base no seu papel específico. Identifique lacunas e pontos de conflito.`
-      )
-    )
-  );
+              await prisma.debateMessage.create({
+                data: { debateRoundId: debateRound.id, agentType, content, round },
+              });
+            })
+          );
 
-  // Persiste mensagens da Rodada 2
-  const round2Messages: { agentType: AgentType; content: string }[] = [];
-  await Promise.all(
-    round2Results.map(async (result, i) => {
-      const agentType = agents[i];
-      const content =
-        result.status === 'fulfilled'
-          ? result.value.content
-          : `[Agente indisponível: ${result.reason?.message ?? 'erro desconhecido'}]`;
+          send('round:done', { round, messages });
+          return messages;
+        }
 
-      round2Messages.push({ agentType, content });
+        // ── RODADA 1: Análise independente ────────────────────────────────────
+        const round1Messages = await runRound(
+          1,
+          `TAREFA: Analise a seguinte proposta/pergunta e forneça sua avaliação inicial.\n\n` +
+          `PROPOSTA:\n${userPrompt}\n\n` +
+          `Dê sua perspectiva única de acordo com seu papel.`,
+        );
 
-      await prisma.debateMessage.create({
-        data: { debateRoundId: debateRound.id, agentType, content, round: 2 },
-      });
-    })
-  );
+        // ── RODADA 2: Debate cruzado ──────────────────────────────────────────
+        const round1Context = round1Messages
+          .map((m) => `### ${m.agentType}\n${m.content}`)
+          .join('\n\n---\n\n');
 
-  // ─── RODADA 3: Síntese e convergência ──────────────────────────────────────
-  const round2Context = round2Messages
-    .map((m) => `### ${m.agentType}\n${m.content}`)
-    .join('\n\n---\n\n');
+        const round2Messages = await runRound(
+          2,
+          `RODADA 2 — DEBATE CRUZADO\n\n` +
+          `PROPOSTA ORIGINAL:\n${userPrompt}\n\n` +
+          `ANÁLISES DA RODADA 1:\n${round1Context}\n\n` +
+          `Responda às análises dos outros agentes. Concorde, discorde ou complemente ` +
+          `com base no seu papel específico. Identifique lacunas e pontos de conflito.`,
+        );
 
-  const round3Results = await Promise.allSettled(
-    agents.map((agent) =>
-      runAgentRound(
-        agent,
-        systemPrompts[agent],
-        `RODADA 3 — SÍNTESE FINAL\n\n` +
-        `PROPOSTA ORIGINAL:\n${userPrompt}\n\n` +
-        `DEBATE ACUMULADO (Rodadas 1 e 2):\n${round1Context}\n\n---\n\n${round2Context}\n\n` +
-        `Com base em todo o debate, forneça sua posição final consolidada. ` +
-        `Apresente os 3 pontos mais críticos e 2 recomendações concretas de acordo com seu papel.`
-      )
-    )
-  );
+        // ── RODADA 3: Síntese e convergência ──────────────────────────────────
+        const round2Context = round2Messages
+          .map((m) => `### ${m.agentType}\n${m.content}`)
+          .join('\n\n---\n\n');
 
-  // Persiste mensagens da Rodada 3
-  const round3Messages: { agentType: AgentType; content: string }[] = [];
-  await Promise.all(
-    round3Results.map(async (result, i) => {
-      const agentType = agents[i];
-      const content =
-        result.status === 'fulfilled'
-          ? result.value.content
-          : `[Agente indisponível: ${result.reason?.message ?? 'erro desconhecido'}]`;
+        const round3Messages = await runRound(
+          3,
+          `RODADA 3 — SÍNTESE FINAL\n\n` +
+          `PROPOSTA ORIGINAL:\n${userPrompt}\n\n` +
+          `DEBATE ACUMULADO (Rodadas 1 e 2):\n${round1Context}\n\n---\n\n${round2Context}\n\n` +
+          `Com base em todo o debate, forneça sua posição final consolidada. ` +
+          `Apresente os 3 pontos mais críticos e 2 recomendações concretas de acordo com seu papel.`,
+        );
 
-      round3Messages.push({ agentType, content });
+        // ── CONSENSO FINAL ────────────────────────────────────────────────────
+        const round3Context = round3Messages
+          .map((m) => `### ${m.agentType}\n${m.content}`)
+          .join('\n\n---\n\n');
 
-      await prisma.debateMessage.create({
-        data: { debateRoundId: debateRound.id, agentType, content, round: 3 },
-      });
-    })
-  );
+        const llamaConfig = getAgent('LLAMA');
+        let consensus = '';
+        try {
+          const { text } = await generateText({
+            model: llamaConfig.model,
+            system:
+              'Você é um sintetizador de debates multidisciplinares. ' +
+              'Crie um CONSENSO FINAL em português: resumo executivo com os pontos de acordo, ' +
+              'pontos de conflito, e as 3 ações mais recomendadas pelo painel de agentes. ' +
+              'Seja objetivo, estruturado e direto. Máximo de 300 palavras.',
+            prompt:
+              `PROPOSTA ANALISADA:\n${userPrompt}\n\n` +
+              `POSIÇÕES FINAIS DOS AGENTES (Rodada 3):\n${round3Context}`,
+            temperature: 0.4,
+            maxOutputTokens: 600,
+          });
+          consensus = text.trim();
+        } catch (err) {
+          console.error('[quadripartite] Falha na geração do consenso:', err);
+          consensus = round3Messages
+            .map((m) => `**${m.agentType}:** ${m.content.slice(0, 150)}...`)
+            .join('\n\n');
+        }
 
-  // ─── CONSENSO FINAL ────────────────────────────────────────────────────────
-  const round3Context = round3Messages
-    .map((m) => `### ${m.agentType}\n${m.content}`)
-    .join('\n\n---\n\n');
+        // ── Geração opcional de diagrama Mermaid ──────────────────────────────
+        const MERMAID_KEYWORDS = [
+          'fluxo', 'cronograma', 'diagrama', 'gantt',
+          'arquitetura', 'fluxograma', 'sequência', 'sequencia',
+          'processo', 'pipeline',
+        ];
 
-  // Usa o Llama via Groq para gerar o consenso (ultra-rápido e econômico)
-  let consensus = '';
-  try {
-    const { text } = await generateText({
-      model: quadripartiteProviders.LLAMA,
-      system:
-        'Você é um sintetizador de debates multidisciplinares. ' +
-        'Crie um CONSENSO FINAL em português: resumo executivo com os pontos de acordo, ' +
-        'pontos de conflito, e as 3 ações mais recomendadas pelo painel de agentes. ' +
-        'Seja objetivo, estruturado e direto. Máximo de 300 palavras.',
-      prompt:
-        `PROPOSTA ANALISADA:\n${userPrompt}\n\n` +
-        `POSIÇÕES FINAIS DOS AGENTES (Rodada 3):\n${round3Context}`,
-      temperature: 0.4,
-      maxOutputTokens: 600,
-    });
-    consensus = text.trim();
-  } catch (err) {
-    console.error('[quadripartite] Falha na geração do consenso:', err);
-    consensus = round3Messages
-      .map((m) => `**${m.agentType}:** ${m.content.slice(0, 150)}...`)
-      .join('\n\n');
-  }
+        const promptLower = userPrompt.toLowerCase();
+        const needsMermaid =
+          MERMAID_KEYWORDS.some((kw) => promptLower.includes(kw)) &&
+          !consensus.includes('```mermaid');
 
-  // ─── Geração opcional de diagrama Mermaid ──────────────────────────────────
-  // Ativada quando o prompt contém termos visuais/estruturais E o consenso
-  // ainda não inclui um bloco ```mermaid (evita duplicação em re-runs).
-  const MERMAID_KEYWORDS = [
-    'fluxo', 'cronograma', 'diagrama', 'gantt',
-    'arquitetura', 'fluxograma', 'sequência', 'sequencia',
-    'processo', 'pipeline',
-  ];
+        let mermaidCode: string | null = null;
 
-  const promptLower = userPrompt.toLowerCase();
-  const needsMermaid =
-    MERMAID_KEYWORDS.some((kw) => promptLower.includes(kw)) &&
-    !consensus.includes('```mermaid');
+        if (needsMermaid) {
+          try {
+            const geminiConfig = getAgent('GEMINI_CREATE');
+            const { text: mermaidRaw } = await generateText({
+              model: geminiConfig.model,
+              system:
+                'Você é um especialista em diagramas Mermaid.js. ' +
+                'Responda APENAS com um único bloco de código mermaid válido, sem texto adicional, ' +
+                'sem explicações, sem markdown além do próprio bloco. ' +
+                'Use flowchart TD ou gantt conforme o contexto. ' +
+                'O diagrama deve ter no máximo 20 nós/itens para manter a legibilidade. ' +
+                'Escreva labels em português.',
+              prompt:
+                `Com base no seguinte consenso de análise, gere um diagrama Mermaid (flowchart ou gantt) ` +
+                `que visualize o processo, arquitetura ou cronograma principal discutido:\n\n${consensus}`,
+              temperature: 0.3,
+              maxOutputTokens: 800,
+            });
 
-  let mermaidCode: string | null = null;
+            const match = mermaidRaw.match(/```mermaid\s*([\s\S]*?)```/i);
+            if (match) {
+              mermaidCode = match[1].trim();
+              consensus = `${consensus}\n\n\`\`\`mermaid\n${mermaidCode}\n\`\`\``;
+            }
+          } catch (err) {
+            console.warn('[quadripartite] Falha na geração do diagrama Mermaid:', err);
+          }
+        }
 
-  if (needsMermaid) {
-    try {
-      const { text: mermaidRaw } = await generateText({
-        model: quadripartiteProviders.GEMINI_CREATE,
-        system:
-          'Você é um especialista em diagramas Mermaid.js. ' +
-          'Responda APENAS com um único bloco de código mermaid válido, sem texto adicional, ' +
-          'sem explicações, sem markdown além do próprio bloco. ' +
-          'Use flowchart TD ou gantt conforme o contexto. ' +
-          'O diagrama deve ter no máximo 20 nós/itens para manter a legibilidade. ' +
-          'Escreva labels em português.',
-        prompt:
-          `Com base no seguinte consenso de análise, gere um diagrama Mermaid (flowchart ou gantt) ` +
-          `que visualize o processo, arquitetura ou cronograma principal discutido:\n\n${consensus}`,
-        temperature: 0.3,
-        maxOutputTokens: 800,
-      });
+        // ── Calcula confiança ─────────────────────────────────────────────────
+        const allResults = [
+          ...round1Messages, ...round2Messages, ...round3Messages,
+        ];
+        const fulfilledCount = allResults.filter(
+          (m) => !m.content.startsWith('[Agente indisponível'),
+        ).length;
+        const total = allResults.length;
 
-      // Extrai o bloco ```mermaid...``` do texto gerado
-      const match = mermaidRaw.match(/```mermaid\s*([\s\S]*?)```/i);
-      if (match) {
-        mermaidCode = match[1].trim();
-        // Anexa o bloco ao consenso para persistência no bloco de texto do editor
-        consensus = `${consensus}\n\n\`\`\`mermaid\n${mermaidCode}\n\`\`\``;
+        let base = fulfilledCount / total;
+        const modePenalty: Record<DebateMode, number> = {
+          CONSENSUS: 0,
+          DEVILS_ADVOCATE: -0.1,
+          STRESS_TEST: -0.15,
+          COMPLIANCE_ONLY: -0.05,
+        };
+        const confidence = Math.max(0, Math.min(1, base + modePenalty[mode]));
+        const confidenceRounded = Math.round(confidence * 100) / 100;
+
+        // ── Evento final com payload completo ─────────────────────────────────
+        send('consensus', {
+          consensus,
+          confidence: confidenceRounded,
+          mermaidCode,
+        });
+
+        send('done', {
+          roundId: debateRound.id,
+          consensus,
+          confidence: confidenceRounded,
+          mermaidCode,
+          mode,
+          rounds: {
+            1: round1Messages,
+            2: round2Messages,
+            3: round3Messages,
+          },
+          meta: {
+            agents: ['GEMINI_SEARCH', 'GEMINI_CREATE', 'DEEPSEEK', 'LLAMA', 'WATSONX_BR'],
+            stack: 'Google Gemini + DeepSeek + Groq/Llama + IBM WatsonX',
+            rateLimitRemaining: remaining - 1,
+            mermaidGenerated: mermaidCode !== null,
+          },
+        });
+      } catch (err) {
+        send('error', {
+          message: err instanceof Error ? err.message : 'Erro interno no debate.',
+        });
+      } finally {
+        controller.close();
       }
-    } catch (err) {
-      // Falha silenciosa — o diagrama é complementar, não bloqueia a resposta
-      console.warn('[quadripartite] Falha na geração do diagrama Mermaid:', err);
-    }
-  }
-
-  // ─── Calcula confiança ─────────────────────────────────────────────────────
-  const allRoundResults = [...round1Results, ...round2Results, ...round3Results];
-  const confidence = calculateConfidence(allRoundResults, mode);
-
-  // ─── Resposta ──────────────────────────────────────────────────────────────
-  return NextResponse.json(
-    {
-      roundId: debateRound.id,
-      consensus,
-      confidence,
-      mermaidCode,        // null quando não gerado; string com o código Mermaid quando gerado
-      mode,
-      rounds: {
-        1: round1Messages,
-        2: round2Messages,
-        3: round3Messages,
-      },
-      meta: {
-        agents: ['GEMINI_SEARCH', 'GEMINI_CREATE', 'DEEPSEEK', 'LLAMA', 'WATSONX_BR'],
-        stack: 'Google Gemini + DeepSeek + Groq/Llama + IBM WatsonX',
-        rateLimitRemaining: remaining - 1,
-        mermaidGenerated: mermaidCode !== null,
-      },
     },
-    {
-      headers: {
-        'X-RateLimit-Limit': String(RATE_LIMIT_MAX),
-        'X-RateLimit-Remaining': String(Math.max(0, remaining - 1)),
-      },
-    }
-  );
+  });
+
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache, no-transform',
+      Connection: 'keep-alive',
+      'X-RateLimit-Limit': String(RATE_LIMIT_MAX),
+      'X-RateLimit-Remaining': String(Math.max(0, remaining - 1)),
+    },
+  });
 }

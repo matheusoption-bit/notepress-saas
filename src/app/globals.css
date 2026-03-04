@@ -460,6 +460,17 @@ body {
   outline: none;
   min-height: 900px;
   caret-color: #a78bfa;
+
+  /* Premium typography — explicit for editor isolation */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+  font-kerning: normal;
+  word-spacing: 0.02em;
+  hanging-punctuation: first last;
+  overflow-wrap: break-word;
+  hyphens: auto;
 }
 
 /* ── Placeholder elegante ─────────────────────────────────── */

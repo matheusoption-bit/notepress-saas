@@ -44,7 +44,6 @@
     "react-dom": "19.2.3",
     "react-hook-form": "^7.71.2",
     "stripe": "^20.3.1",
-    "use-debounce": "^10.1.0",
     "y-indexeddb": "^9.0.12",
     "y-webrtc": "^10.3.0",
     "yjs": "^13.6.29",

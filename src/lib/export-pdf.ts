@@ -675,21 +675,50 @@ export function lexicalJsonToHtml(lexicalJson: string, title = 'Documento'): str
  *
  * Usa o Puppeteer (Chromium headless) para renderizar o HTML — incluindo
  * diagramas Mermaid via CDN — e capturar o PDF final.
+ *
+ * Suporta dois modos de deploy:
+ *   1. Serverless (Vercel): usa @sparticuz/chromium + puppeteer-core (se disponível)
+ *   2. Local/Docker: usa puppeteer com Chromium bundled
+ *
+ * O modo é detectado automaticamente via disponibilidade do @sparticuz/chromium.
  */
 export async function exportLexicalToPdf(
   lexicalJson: string,
   title = 'Documento',
 ): Promise<Buffer> {
-  // Import dinâmico para evitar erros em build time / edge runtime
-  const puppeteer = await import('puppeteer');
-
   const html = lexicalJsonToHtml(lexicalJson, title);
   const hasMermaid = lexicalJson.includes('"mermaid-diagram"');
 
-  const browser = await puppeteer.default.launch({
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
-  });
+  // Detecta ambiente serverless e carrega Chromium otimizado se disponível
+  let browser;
+  try {
+    // Tenta @sparticuz/chromium (serverless — bundle <50MB)
+    // @ts-expect-error — pacote opcional, instalado apenas em deploy serverless
+    const chromium = await import('@sparticuz/chromium').then(m => m.default).catch(() => null);
+    if (chromium) {
+      const puppeteerCore = await import('puppeteer-core');
+      browser = await puppeteerCore.default.launch({
+        args: chromium.args,
+        defaultViewport: chromium.defaultViewport,
+        executablePath: await chromium.executablePath(),
+        headless: true,
+      });
+    } else {
+      // Fallback: puppeteer com Chromium local (dev / Docker)
+      const puppeteer = await import('puppeteer');
+      browser = await puppeteer.default.launch({
+        headless: true,
+        args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      });
+    }
+  } catch {
+    // Último recurso: puppeteer completo
+    const puppeteer = await import('puppeteer');
+    browser = await puppeteer.default.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    });
+  }
 
   try {
     const page = await browser.newPage();
