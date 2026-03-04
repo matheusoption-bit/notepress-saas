@@ -13,6 +13,8 @@ export {
   anthropicProvider,
   googleProvider,
   openaiProvider,
+  getOpenAiApiKey,
+  getOpenAiApiKeySource,
   sonar,
   claude,
   gemini,
@@ -34,7 +36,9 @@ export function assertAiEnv() {
   if (!process.env.PERPLEXITY_API_KEY) missing.push('PERPLEXITY_API_KEY');
   if (!process.env.AI_ANTHROPIC_KEY)   missing.push('AI_ANTHROPIC_KEY');
   if (!process.env.AI_GOOGLE_KEY)      missing.push('AI_GOOGLE_KEY');
-  if (!process.env.AI_OPENAI_KEY)      missing.push('AI_OPENAI_KEY');
+  if (!process.env.OPENAI_API_KEY && !process.env.AI_OPENAI_KEY) {
+    missing.push('OPENAI_API_KEY (ou legado AI_OPENAI_KEY)');
+  }
 
   if (missing.length > 0 && process.env.NODE_ENV !== 'production') {
     console.warn(

@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server';
 import { generateText } from 'ai';
 import { groqProvider } from '@/lib/ai-providers';
 import { prisma } from '@/lib/prisma';
+import { buildRateLimitHeaders, checkAiRateLimit } from '@/lib/rate-limit';
 
 /**
  * POST /api/ai/ghost-text
@@ -20,6 +21,14 @@ export async function POST(req: Request) {
     const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ error: 'Não autenticado' }, { status: 401 });
+    }
+
+    const rate = checkAiRateLimit(`ghost-text:${userId}`);
+    if (!rate.allowed) {
+      return NextResponse.json(
+        { error: 'Limite de autocomplete atingido. Aguarde alguns segundos.' },
+        { status: 429, headers: buildRateLimitHeaders(rate) },
+      );
     }
 
     // ── Payload ───────────────────────────────────────────────
@@ -67,7 +76,7 @@ export async function POST(req: Request) {
       model: groqProvider('llama-3.3-70b-versatile'),
       system: systemPrompt,
       prompt: context,
-      maxTokens: 120,
+      maxOutputTokens: 120,
       temperature: 0.4,
     });
 

@@ -1,8 +1,10 @@
 // src/app/api/brainstorm/route.ts
 import { NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
 import { generateObject } from 'ai';
 import { z } from 'zod';
-import { gpt } from '@/lib/ai-providers';
+import { getOpenAiApiKey, getOpenAiApiKeySource, gpt } from '@/lib/ai-providers';
+import { buildRateLimitHeaders, checkAiRateLimit } from '@/lib/rate-limit';
 
 /**
  * POST /api/brainstorm
@@ -23,6 +25,28 @@ const BrainstormOutputSchema = z.object({
 });
 export async function POST(req: Request) {
   try {
+    const openAiApiKey = getOpenAiApiKey();
+    const openAiApiKeySource = getOpenAiApiKeySource();
+
+    if (openAiApiKeySource === 'AI_OPENAI_KEY' && process.env.NODE_ENV !== 'production') {
+      console.warn(
+        '[brainstorm] Usando env legado AI_OPENAI_KEY. Migre para OPENAI_API_KEY (ADR-0001).',
+      );
+    }
+
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: 'Não autenticado.' }, { status: 401 });
+    }
+
+    const rate = checkAiRateLimit(`brainstorm:${userId}`);
+    if (!rate.allowed) {
+      return NextResponse.json(
+        { error: 'Limite de brainstorm atingido. Aguarde alguns segundos.' },
+        { status: 429, headers: buildRateLimitHeaders(rate) },
+      );
+    }
+
     const formData = await req.formData();
     const audioFile = formData.get('audio');
 
@@ -34,7 +58,7 @@ export async function POST(req: Request) {
     }
 
     // ── Modo Mock (sem chave de API) ────────────────────────────
-    if (!process.env.OPENAI_API_KEY) {
+    if (!openAiApiKey) {
       await new Promise((r) => setTimeout(r, 1200)); // simula latência
       return NextResponse.json({
         transcricao:
@@ -72,7 +96,7 @@ export async function POST(req: Request) {
       'https://api.openai.com/v1/audio/transcriptions',
       {
         method: 'POST',
-        headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
+        headers: { Authorization: `Bearer ${openAiApiKey}` },
         body: whisperForm,
       },
     );

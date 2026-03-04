@@ -1,29 +1,8 @@
 // src/app/api/notebooks/route.ts
-import { auth, currentUser } from '@clerk/nextjs/server';
+import { auth } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-
-/**
- * Garante que o registro User existe no Prisma para o clerkId autenticado.
- * Cria o usuário na primeira chamada (upsert), evitando dependência de webhook.
- */
-async function ensureUser(clerkId: string) {
-  const clerkUser = await currentUser();
-  if (!clerkUser) return null;
-
-  const email =
-    clerkUser.emailAddresses.find((e) => e.id === clerkUser.primaryEmailAddressId)
-      ?.emailAddress ?? clerkUser.emailAddresses[0]?.emailAddress ?? '';
-
-  const name =
-    [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(' ') || null;
-
-  return prisma.user.upsert({
-    where: { clerkId },
-    update: { email, name, imageUrl: clerkUser.imageUrl ?? null },
-    create: { clerkId, email, name, imageUrl: clerkUser.imageUrl ?? null },
-  });
-}
+import { ensureUser } from '@/lib/ensure-user';
 
 /**
  * GET /api/notebooks

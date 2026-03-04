@@ -6,6 +6,10 @@
  * Os valores efetivos vêm das CSS custom properties em globals.css.
  * Estes tokens servem como referência canônica para documentação,
  * tipagem e uso programático.
+ *
+ * ADR-0002:
+ * Mantido no repositório como fonte de referência tipada.
+ * A integração será incremental nas próximas sprints (não remover).
  */
 
 /* ────────────────────────────────────────────────────────────── */

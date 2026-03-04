@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server';
 import { generateText } from 'ai';
 import { groqProvider, geminiProvider } from '@/lib/ai-providers';
 import { prisma } from '@/lib/prisma';
+import { buildRateLimitHeaders, checkAiRateLimit } from '@/lib/rate-limit';
 
 /**
  * POST /api/ai/editor-action
@@ -66,6 +67,14 @@ export async function POST(req: Request) {
     const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ error: 'Não autenticado' }, { status: 401 });
+    }
+
+    const rate = checkAiRateLimit(`editor-action:${userId}`);
+    if (!rate.allowed) {
+      return NextResponse.json(
+        { error: 'Limite de uso de IA atingido. Aguarde alguns segundos.' },
+        { status: 429, headers: buildRateLimitHeaders(rate) },
+      );
     }
 
     // ── Payload ───────────────────────────────────────────────

@@ -686,6 +686,18 @@ export async function exportLexicalToPdf(
   lexicalJson: string,
   title = 'Documento',
 ): Promise<Buffer> {
+  type PdfPage = {
+    setContent: (
+      htmlContent: string,
+      options: { waitUntil: 'networkidle0' | 'domcontentloaded'; timeout: number },
+    ) => Promise<void>;
+    waitForFunction: (
+      pageFunction: () => boolean,
+      options: { timeout: number },
+    ) => Promise<unknown>;
+    pdf: (options: object) => Promise<Uint8Array>;
+  };
+
   const html = lexicalJsonToHtml(lexicalJson, title);
   const hasMermaid = lexicalJson.includes('"mermaid-diagram"');
 
@@ -693,7 +705,6 @@ export async function exportLexicalToPdf(
   let browser;
   try {
     // Tenta @sparticuz/chromium (serverless — bundle <50MB)
-    // @ts-expect-error — pacote opcional, instalado apenas em deploy serverless
     const chromium = await import('@sparticuz/chromium').then(m => m.default).catch(() => null);
     if (chromium) {
       const puppeteerCore = await import('puppeteer-core');
@@ -721,7 +732,11 @@ export async function exportLexicalToPdf(
   }
 
   try {
-    const page = await browser.newPage();
+    // puppeteer-core e puppeteer expõem assinaturas de Page ligeiramente diferentes.
+    // Aqui tipamos somente os métodos necessários para manter compatibilidade.
+    const page = await (
+      browser as { newPage: () => Promise<PdfPage> }
+    ).newPage();
 
     // Carrega o HTML; se houver Mermaid, aguarda rede para o CDN
     await page.setContent(html, {

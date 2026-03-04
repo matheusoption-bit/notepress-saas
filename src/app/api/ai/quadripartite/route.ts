@@ -93,7 +93,7 @@ Responda em português, de forma objetiva e normativa, com no máximo 400 palavr
 // Usa contagem de DebateRounds recentes como proxy — evita dependência de
 // Redis/KV externo enquanto mantém persistência entre deploys.
 
-const RATE_LIMIT_MAX = 15;
+const RATE_LIMIT_MAX = Number(process.env.AI_RATE_LIMIT_PER_MIN ?? 15);
 const RATE_LIMIT_WINDOW_MS = 60_000;
 
 async function checkRateLimit(userId: string): Promise<{ allowed: boolean; remaining: number }> {
@@ -415,7 +415,7 @@ export async function POST(req: Request) {
         ).length;
         const total = allResults.length;
 
-        let base = fulfilledCount / total;
+        const base = fulfilledCount / total;
         const modePenalty: Record<DebateMode, number> = {
           CONSENSUS: 0,
           DEVILS_ADVOCATE: -0.1,

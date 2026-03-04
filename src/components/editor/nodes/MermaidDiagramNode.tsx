@@ -107,7 +107,9 @@ function MermaidWidget({ nodeKey, initialCode }: MermaidWidgetProps) {
   // ── Renderização inicial ────────────────────────────────────
   useEffect(() => {
     let cancelled = false;
-    setIsRendering(true);
+    queueMicrotask(() => {
+      if (!cancelled) setIsRendering(true);
+    });
     renderMermaidSvg(initialCode).then((result) => {
       if (cancelled) return;
       if (result.error) {
@@ -126,7 +128,6 @@ function MermaidWidget({ nodeKey, initialCode }: MermaidWidgetProps) {
   useEffect(() => {
     if (!editing) return;
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    setIsPreviewRendering(true);
     debounceRef.current = setTimeout(async () => {
       const result = await renderMermaidSvg(draftCode);
       if (result.error) {
@@ -429,7 +430,10 @@ function MermaidWidget({ nodeKey, initialCode }: MermaidWidgetProps) {
             </p>
             <textarea
               value={draftCode}
-              onChange={(e) => setDraftCode(e.target.value)}
+              onChange={(e) => {
+                setIsPreviewRendering(true);
+                setDraftCode(e.target.value);
+              }}
               onClick={(e) => e.stopPropagation()}
               spellCheck={false}
               rows={12}
