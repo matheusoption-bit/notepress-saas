@@ -79,7 +79,7 @@ function PublicLayout({
   className?: string;
 }) {
   return (
-    <div className="min-h-screen bg-[--color-background-base] text-[--color-text-primary] relative">
+    <div className="min-h-screen text-[--color-text-primary] relative">
       <WeatherBackground />
       <PublicHeader />
       <main className={cn("pt-14 relative z-10", className)}>{children}</main>
@@ -102,13 +102,13 @@ function AppLayout({
   const { config } = useFocusMode();
 
   return (
-    <div className="min-h-screen bg-[--color-background-base] text-[--color-text-primary] flex relative">
+    <div className="min-h-screen text-[--color-text-primary] flex relative">
       <WeatherBackground />
 
       {/* Sidebar — glass, auto-hide in focus modes */}
       <div
         className={cn(
-          "sidebar-auto-hide transition-all duration-500 ease-out",
+          "sidebar-auto-hide transition-all duration-500 ease-out relative z-10",
           !config.sidebarVisible && "opacity-0 pointer-events-none -translate-x-full"
         )}
       >

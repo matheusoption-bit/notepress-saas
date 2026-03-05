@@ -4,8 +4,16 @@ import { useKBar } from "kbar";
 import { Bell, HelpCircle, Search } from "lucide-react";
 import { WeatherIndicator } from "@/components/atmosphere/WeatherIndicator";
 
+function useKBarSafe() {
+  try {
+    return useKBar();
+  } catch {
+    return { query: undefined };
+  }
+}
+
 export function DashboardHeader() {
-  const { query } = useKBar();
+  const { query } = useKBarSafe();
 
   return (
     <header className="sticky top-0 z-40 w-full glass-panel-static border-b border-[--glass-border]">
@@ -18,7 +26,7 @@ export function DashboardHeader() {
             </div>
             <button
               type="button"
-              onClick={() => query.toggle()}
+              onClick={() => query?.toggle()}
               className="block w-full rounded-2xl py-2.5 pl-10 pr-12 text-left text-[--color-text-muted] glass-input text-sm cursor-text"
               aria-label="Abrir paleta de comandos"
             >

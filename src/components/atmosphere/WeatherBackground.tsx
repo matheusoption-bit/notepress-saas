@@ -180,7 +180,7 @@ export function WeatherBackground() {
     <AnimatePresence mode="wait">
       <motion.div
         key={atmosphere.label}
-        className="fixed inset-0 pointer-events-none z-0"
+        className="fixed inset-0 pointer-events-none z-[1]"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}

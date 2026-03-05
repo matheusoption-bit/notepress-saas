@@ -94,13 +94,15 @@ const STORAGE_KEY = "notepress_focus_mode";
 const MODE_ORDER: FocusMode[] = ["flow", "deep", "ultra", "creative"];
 
 export function FocusModeProvider({ children }: { children: React.ReactNode }) {
-  const [mode, setModeState] = useState<FocusMode>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved && saved in FOCUS_MODES) return saved as FocusMode;
+  const [mode, setModeState] = useState<FocusMode>("flow");
+
+  // Sync from localStorage after mount to avoid hydration mismatch
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved && saved in FOCUS_MODES) {
+      setModeState(saved as FocusMode);
     }
-    return "flow";
-  });
+  }, []);
 
   const setMode = useCallback((newMode: FocusMode) => {
     setModeState(newMode);

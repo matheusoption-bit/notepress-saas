@@ -29,7 +29,7 @@ export default function EditalPage({ params }: { params: Promise<{ id: string }>
   if (!edital) return <div className="p-12 text-center text-xl">Edital não encontrado</div>;
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white p-8">
+    <div className="min-h-screen text-[--color-text-primary] p-8">
       <div className="max-w-5xl mx-auto">
         <Link href="/editais" className="flex items-center gap-2 text-zinc-400 hover:text-white mb-8">
           <ArrowLeft size={20} /> Voltar para todos os editais
@@ -60,11 +60,11 @@ export default function EditalPage({ params }: { params: Promise<{ id: string }>
             <div>
               <h2 className="text-2xl font-semibold mb-4">Checklist para submissão</h2>
               <div className="space-y-4">
-                <div className="flex gap-4 p-5 bg-zinc-900 rounded-2xl">
+                <div className="flex gap-4 p-5 glass-card rounded-2xl">
                   <div className="text-emerald-400 mt-1">✓</div>
                   <div>Parceria com ICT obrigatória</div>
                 </div>
-                <div className="flex gap-4 p-5 bg-zinc-900 rounded-2xl">
+                <div className="flex gap-4 p-5 glass-card rounded-2xl">
                   <div className="text-emerald-400 mt-1">✓</div>
                   <div>TRL entre 3 e 9</div>
                 </div>
@@ -74,7 +74,7 @@ export default function EditalPage({ params }: { params: Promise<{ id: string }>
 
           {/* Sidebar */}
           <div className="space-y-8">
-            <div className="bg-zinc-900 rounded-3xl p-8">
+            <div className="glass-card rounded-3xl p-8">
               <h3 className="font-semibold mb-6 flex items-center gap-2">
                 <Target className="text-violet-400" />
                 Termômetro de Aderência
